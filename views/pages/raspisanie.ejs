@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1>Расписание · <%= monthName %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <% if (!month || entries.length === 0) { %>
+        <p>Расписание на текущий месяц пока не опубликовано.</p>
+      <% } else { %>
+        <div style="overflow-x:auto;">
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th>День</th>
+                <% groups.forEach(function(g) { %><th><%= g.name %></th><% }); %>
+              </tr>
+            </thead>
+            <tbody>
+              <% 
+                const days = [...new Set(entries.map(e => e.day))].sort((a,b) => a-b);
+                days.forEach(function(day) {
+                  const dayEntries = entries.filter(e => e.day === day);
+                  const weekday = dayEntries[0]?.weekday;
+              %>
+                <tr>
+                  <td class="day-cell"><%= day %> <% if (weekday) { %>(<%= weekday %>)<% } %></td>
+                  <% groups.forEach(function(g) {
+                    const slot = dayEntries.find(e => e.group_id === g.id);
+                  %>
+                    <td>
+                      <% if (slot && slot.time_start) { %>
+                        <%= slot.time_start %><% if (slot.time_end) { %>–<%= slot.time_end %><% } %>
+                        <% if (slot.note) { %><br><small><%= slot.note %></small><% } %>
+                      <% } %>
+                    </td>
+                  <% }); %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+      <ul class="schedule-note">
+        <li>— Стадион «Зелёный Луг» (ул. Гамарника, 9/1)</li>
+        <li>— Спорткомплекс РЦОП по гандболу (ул. Филимонова, 55/2)</li>
+        <li>— Футбольный манеж (пр. Победителей, 20/2)</li>
+        <li>— Спорткомплекс «Ампласт» (ул. Седых, 66)</li>
+      </ul>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

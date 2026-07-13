@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <div class="news-grid">
+        <% items.forEach(function(item) { %>
+          <article class="card" style="padding:1.5rem;">
+            <h3><%= item.title %></h3>
+            <% if (item.body) { %><div style="white-space:pre-line;margin-top:0.5rem;"><%= item.body %></div><% } %>
+          </article>
+        <% }); %>
+      </div>
+      <p style="margin-top:2rem;"><a href="/arhiv" class="btn btn--outline">← Архив</a></p>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

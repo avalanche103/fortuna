@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <div class="archive-tabs">
+        <a href="/arhiv" class="active">Материалы</a>
+        <a href="/arhiv/fotogalereya">Фотогалерея</a>
+      </div>
+      <h2 class="section__title" style="font-size:1.4rem;">По годам</h2>
+      <div class="years-grid" style="margin-bottom:3rem;">
+        <% archiveYears.forEach(function(y) { %>
+          <a href="/arhiv/<%= y.year %>" class="year-link"><%= y.year %></a>
+        <% }); %>
+      </div>
+      <h2 class="section__title" style="font-size:1.4rem;">Фотогалерея</h2>
+      <div class="years-grid">
+        <% galleryYears.forEach(function(y) { %>
+          <a href="/arhiv/fotogalereya/<%= y.year %>" class="year-link"><%= y.year %></a>
+        <% }); %>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

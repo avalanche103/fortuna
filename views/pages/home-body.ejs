@@ -1,0 +1,135 @@
+<div class="section">
+  <div class="container">
+    <div class="dashboard-grid">
+      <div>
+        <div class="section__header">
+          <h2 class="section__title">Новости</h2>
+          <a href="/blog" class="btn btn--outline">Все новости</a>
+        </div>
+        <% if (news.length === 0) { %>
+          <p>Новостей пока нет.</p>
+        <% } else { %>
+          <% const featured = news[0]; %>
+          <% const featuredUrl = '/blog/' + featured.category + '/' + featured.slug; %>
+          <% const featuredImg = getNewsCoverImage(featured); %>
+          <% const featuredExcerpt = getNewsExcerpt(featured, 280); %>
+          <article class="news-item news-item--featured">
+            <a href="<%= featuredUrl %>" class="news-item__cover-link">
+              <% if (featuredImg) { %>
+                <img class="news-item__cover news-item__cover--large" src="<%= featuredImg %>" alt="<%= featured.title %>" loading="eager">
+              <% } else { %>
+                <div class="news-item__cover news-item__cover--large news-item__cover--placeholder"></div>
+              <% } %>
+            </a>
+            <div class="news-item__body">
+              <div class="news-item__date"><%= formatDateRu(featured.published_at) %></div>
+              <h3 class="news-item__title news-item__title--featured">
+                <a href="<%= featuredUrl %>"><%= featured.title %></a>
+              </h3>
+              <% if (featuredExcerpt) { %>
+                <p class="news-item__excerpt"><%= featuredExcerpt %></p>
+              <% } %>
+              <a href="<%= featuredUrl %>" class="btn btn--primary" style="margin-top:0.75rem;font-size:0.8rem;padding:0.45rem 1rem;">Читать</a>
+            </div>
+          </article>
+
+          <% if (news.length > 1) { %>
+            <div class="news-grid news-grid--compact">
+              <% news.slice(1).forEach(function(item) { %>
+                <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
+                <% const itemImg = getNewsCoverImage(item); %>
+                <% const excerpt = getNewsExcerpt(item, 120); %>
+                <article class="news-item news-item--compact">
+                  <a href="<%= itemUrl %>" class="news-item__thumb-link">
+                    <% if (itemImg) { %>
+                      <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
+                    <% } else { %>
+                      <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+                    <% } %>
+                  </a>
+                  <div class="news-item__body">
+                    <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
+                    <h3 class="news-item__title">
+                      <a href="<%= itemUrl %>"><%= item.title %></a>
+                    </h3>
+                    <% if (excerpt) { %>
+                      <p class="news-item__excerpt"><%= excerpt %></p>
+                    <% } %>
+                  </div>
+                </article>
+              <% }); %>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+
+      <aside>
+        <div class="widget">
+          <h3 class="widget__title">Именинники · <%= monthName %></h3>
+          <% if (birthdays.length === 0) { %>
+            <p style="color:var(--gray-600);font-size:0.9rem;">В этом месяце именинников нет.</p>
+          <% } else { %>
+            <ul class="birthday-list">
+              <% birthdays.forEach(function(p) { %>
+                <li>
+                  <span><%= p.name %></span>
+                  <span class="date"><%= p.birth_date %></span>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="section__header">
+      <h2 class="section__title">FC Fortuna TV</h2>
+    </div>
+    <div class="video-grid">
+      <% if (videos.length === 0) { %>
+        <p>Видео пока не добавлены.</p>
+      <% } %>
+      <% videos.forEach(function(v) { %>
+        <a href="<%= v.youtube_url %>" target="_blank" rel="noopener" class="card video-card">
+          <img class="video-card__thumb" src="<%= youtubeThumb(v.youtube_url) %>" alt="<%= v.title %>" loading="lazy">
+          <div class="video-card__title"><%= v.title %></div>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="section__header">
+      <h2 class="section__title">Воспитанники</h2>
+      <a href="/vospitanniki" class="btn btn--outline">Перейти в раздел</a>
+    </div>
+    <div class="players-grid">
+      <% graduates.forEach(function(p) { %>
+        <a href="/vospitanniki/<%= p.slug %>" class="player-card">
+          <% if (p.photo) { %>
+            <img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
+          <% } else { %>
+            <div class="player-card__photo player-card__photo--placeholder"><%= p.name.charAt(0) %></div>
+          <% } %>
+          <div class="player-card__name"><%= p.name %></div>
+          <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</section>
+
+<section class="recruitment">
+  <div class="container">
+    <h2><%= settings.recruitment_title || 'Сделайте правильный выбор!' %></h2>
+    <p class="recruitment__subtitle"><%= settings.recruitment_subtitle || '' %></p>
+    <div class="recruitment__body"><%= settings.recruitment_body || '' %></div>
+    <div class="recruitment__phone"><%= settings.banner_phones || '+375-29-661-19-31' %></div>
+  </div>
+</section>

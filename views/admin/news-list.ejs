@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <div class="admin-header">
+        <h1><%= title %></h1>
+        <a href="/admin/news/new" class="btn btn--primary">+ Добавить</a>
+      </div>
+      <table class="admin-table">
+        <thead><tr><th>Дата</th><th>Заголовок</th><th>Категория</th><th></th></tr></thead>
+        <tbody>
+          <% news.forEach(function(n) { %>
+            <tr>
+              <td><%= n.published_at %></td>
+              <td><%= n.title %></td>
+              <td><%= n.category %></td>
+              <td class="btn-group">
+                <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
+                <form action="/admin/news/<%= n.id %>/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?')">
+                  <button type="submit" class="btn btn--danger">Удалить</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

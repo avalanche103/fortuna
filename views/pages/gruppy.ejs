@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <% groups.forEach(function(group) { %>
+        <% const players = playersByGroup[group.id] || []; %>
+        <section class="group-block" id="<%= group.slug %>">
+          <h2 class="group-block__title"><%= group.name %></h2>
+          <div class="players-grid">
+            <% players.forEach(function(p) { %>
+              <div class="player-card">
+                <% if (p.photo) { %>
+                  <img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
+                <% } else { %>
+                  <div class="player-card__photo player-card__photo--placeholder"><%= p.number || '' %></div>
+                <% } %>
+                <div class="player-card__name"><%= p.name %></div>
+                <% if (p.is_chudo_master && group.slug !== 'chu-do-master') { %>
+                  <div class="player-card__badge">Чу-До Мастер</div>
+                <% } %>
+                <% if (p.birth_date) { %><div class="player-card__meta"><%= p.birth_date %></div><% } %>
+              </div>
+            <% }); %>
+          </div>
+        </section>
+      <% }); %>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

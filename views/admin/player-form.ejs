@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <h1><%= title %></h1>
+      <form class="form-card" method="post" enctype="multipart/form-data" action="<%= player ? '/admin/players/' + player.id : '/admin/players' %>">
+        <div class="form-group">
+          <label>ФИО</label>
+          <input type="text" name="name" value="<%= player ? player.name : '' %>" required>
+        </div>
+        <div class="form-group">
+          <label>Дата рождения (ДД.ММ.ГГГГ)</label>
+          <input type="text" name="birth_date" value="<%= player ? (player.birth_date || '') : '' %>">
+        </div>
+        <div class="form-group">
+          <label>Амплуа</label>
+          <input type="text" name="position" value="<%= player ? (player.position || '') : '' %>">
+        </div>
+        <div class="form-group">
+          <label>Клуб</label>
+          <input type="text" name="club" value="<%= player ? (player.club || '') : '' %>">
+        </div>
+        <div class="form-group">
+          <label>Биография</label>
+          <textarea name="bio"><%= player ? (player.bio || '') : '' %></textarea>
+        </div>
+        <div class="form-group">
+          <label>Фото</label>
+          <input type="file" name="photo" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label>Группы</label>
+          <% groups.forEach(function(g) { %>
+            <div class="form-check">
+              <input type="checkbox" name="group_ids" value="<%= g.id %>" id="g<%= g.id %>"
+                <%= player && player.groupIds && player.groupIds.includes(g.id) ? 'checked' : '' %>>
+              <label for="g<%= g.id %>"><%= g.name %></label>
+            </div>
+          <% }); %>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" name="is_chudo_master" id="is_chudo_master" <%= player && player.is_chudo_master ? 'checked' : '' %>>
+          <label for="is_chudo_master">Чу-До Мастер (доп. занятия)</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" name="is_graduate" id="is_graduate" <%= player && player.is_graduate ? 'checked' : '' %>>
+          <label for="is_graduate">Воспитанник (выпускник)</label>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" name="is_featured" id="is_featured" <%= player && player.is_featured ? 'checked' : '' %>>
+          <label for="is_featured">Показывать на главной</label>
+        </div>
+        <div class="form-group">
+          <label>Порядок сортировки</label>
+          <input type="number" name="sort_order" value="<%= player ? player.sort_order : 0 %>">
+        </div>
+        <button type="submit" class="btn btn--primary">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

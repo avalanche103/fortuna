@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <div class="news-grid">
+        <% news.forEach(function(item) { %>
+          <article class="news-item">
+            <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
+            <div>
+              <h3 class="news-item__title">
+                <a href="/blog/<%= item.category %>/<%= item.slug %>"><%= item.title %></a>
+              </h3>
+              <% const excerpt = getNewsExcerpt(item); %>
+              <% if (excerpt) { %><p class="news-item__excerpt"><%= excerpt %></p><% } %>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+      <% if (pages > 1) { %>
+        <div class="pagination">
+          <% for (let i = 1; i <= pages; i++) { %>
+            <% if (i === page) { %><span class="current"><%= i %></span>
+            <% } else { %><a href="/blog?page=<%= i %>"><%= i %></a><% } %>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

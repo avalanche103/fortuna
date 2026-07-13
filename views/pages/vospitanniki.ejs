@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <div class="players-grid">
+        <% graduates.forEach(function(p) { %>
+          <a href="/vospitanniki/<%= p.slug %>" class="player-card">
+            <% if (p.photo) { %><img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
+            <% } else { %><div class="player-card__photo player-card__photo--placeholder"><%= p.name.charAt(0) %></div><% } %>
+            <div class="player-card__name"><%= p.name %></div>
+            <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

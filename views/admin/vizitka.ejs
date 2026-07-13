@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <h1><%= title %></h1>
+      <% sections.forEach(function(s) { %>
+        <form class="form-card" method="post" action="/admin/vizitka" style="margin-bottom:1.5rem;">
+          <input type="hidden" name="id" value="<%= s.id %>">
+          <div class="form-group"><label>Заголовок</label><input type="text" name="title" value="<%= s.title %>"></div>
+          <div class="form-group"><label>Текст</label><textarea name="body" style="min-height:160px;"><%= s.body %></textarea></div>
+          <div class="form-group"><label>Порядок</label><input type="number" name="sort_order" value="<%= s.sort_order %>"></div>
+          <button type="submit" class="btn btn--primary">Сохранить</button>
+        </form>
+      <% }); %>
+      <h2>Новый раздел</h2>
+      <form class="form-card" method="post" action="/admin/vizitka">
+        <div class="form-group"><label>Заголовок</label><input type="text" name="title" required></div>
+        <div class="form-group"><label>Текст</label><textarea name="body" required></textarea></div>
+        <button type="submit" class="btn btn--secondary">Добавить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

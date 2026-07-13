@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= graduate.name %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
+        <% if (graduate.photo) { %>
+          <img src="<%= graduate.photo %>" alt="<%= graduate.name %>" style="border-radius:12px;width:100%;">
+        <% } %>
+        <div class="card" style="padding:2rem;">
+          <% if (graduate.birth_date) { %><p><strong>Дата рождения:</strong> <%= graduate.birth_date %></p><% } %>
+          <% if (graduate.position) { %><p><strong>Амплуа:</strong> <%= graduate.position %></p><% } %>
+          <% if (graduate.club) { %><p><strong>Клуб:</strong> <%= graduate.club %></p><% } %>
+          <% if (graduate.bio) { %><div style="margin-top:1rem;white-space:pre-line;"><%= graduate.bio %></div><% } %>
+        </div>
+      </div>
+      <p style="margin-top:2rem;"><a href="/vospitanniki" class="btn btn--outline">← Все воспитанники</a></p>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

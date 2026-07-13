@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <h1><%= title %></h1>
+      <form class="form-card" method="post" action="/admin/settings">
+        <div class="form-group">
+          <label>Бегущая строка</label>
+          <input type="text" name="banner_text" value="<%= settings.banner_text || '' %>">
+        </div>
+        <div class="form-group">
+          <label>Телефоны</label>
+          <input type="text" name="banner_phones" value="<%= settings.banner_phones || '' %>">
+        </div>
+        <div class="form-group">
+          <label>Часы работы</label>
+          <input type="text" name="banner_hours" value="<%= settings.banner_hours || '' %>">
+        </div>
+        <div class="form-group">
+          <label>Заголовок блока набора</label>
+          <input type="text" name="recruitment_title" value="<%= settings.recruitment_title || '' %>">
+        </div>
+        <div class="form-group">
+          <label>Подзаголовок набора</label>
+          <input type="text" name="recruitment_subtitle" value="<%= settings.recruitment_subtitle || '' %>">
+        </div>
+        <div class="form-group">
+          <label>Текст набора</label>
+          <textarea name="recruitment_body" style="min-height:200px;"><%= settings.recruitment_body || '' %></textarea>
+        </div>
+        <button type="submit" class="btn btn--primary">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
