@@ -6,7 +6,8 @@ import slugify from 'slugify';
 import db from '../db';
 import { queryRows } from '../db/helpers';
 import { requireAdmin, verifyAdmin, getAdminId } from '../middleware/auth';
-import { getRosterGroups, getSettings } from '../services/content';
+import { getGroups, getRosterGroups, getSettings, getVizitkaCoaches, getVizitkaSections } from '../services/content';
+import { resolveYoutubeTitle } from '../utils/youtube';
 
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -19,6 +20,47 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+const groupUploadDir = path.join(uploadDir, 'groups');
+const groupStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    fs.mkdirSync(groupUploadDir, { recursive: true });
+    cb(null, groupUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+const uploadGroupPhoto = multer({ storage: groupStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+const vizitkaUploadDir = path.join(uploadDir, 'vizitka');
+const vizitkaCoachUploadDir = path.join(uploadDir, 'vizitka', 'coaches');
+const vizitkaStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    fs.mkdirSync(vizitkaUploadDir, { recursive: true });
+    cb(null, vizitkaUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+const vizitkaCoachStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    fs.mkdirSync(vizitkaCoachUploadDir, { recursive: true });
+    cb(null, vizitkaCoachUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+const uploadVizitkaImage = multer({ storage: vizitkaStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const uploadVizitkaCoachPhoto = multer({
+  storage: vizitkaCoachStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 const router = Router();
 
@@ -97,6 +139,29 @@ router.post('/news/:id/delete', requireAdmin, (req, res) => {
   res.redirect('/admin/news');
 });
 
+// --- Groups ---
+router.get('/groups', requireAdmin, (_req, res) => {
+  res.render('admin/groups-list', { title: 'Группы', groups: getGroups() });
+});
+
+router.post('/groups/:id', requireAdmin, uploadGroupPhoto.single('photo'), (req, res) => {
+  const existing = db.prepare('SELECT photo FROM groups WHERE id = ?').get(req.params.id) as
+    | { photo: string | null }
+    | undefined;
+  if (!existing) {
+    res.status(404).send('Not found');
+    return;
+  }
+  let photo = existing.photo;
+  if (req.body.remove_photo === '1') {
+    photo = null;
+  } else if (req.file) {
+    photo = `/uploads/groups/${req.file.filename}`;
+  }
+  db.prepare('UPDATE groups SET photo = ? WHERE id = ?').run(photo, req.params.id);
+  res.redirect('/admin/groups');
+});
+
 // --- Players ---
 router.get('/players', requireAdmin, (_req, res) => {
   const players = db.prepare('SELECT * FROM players ORDER BY is_graduate DESC, sort_order, name').all();
@@ -170,10 +235,15 @@ router.get('/videos', requireAdmin, (_req, res) => {
   res.render('admin/videos-list', { title: 'Видео', videos });
 });
 
-router.post('/videos', requireAdmin, (req, res) => {
+router.post('/videos', requireAdmin, async (req, res) => {
   const { title, youtube_url, sort_order } = req.body;
+  const resolvedTitle =
+    (typeof title === 'string' && title.trim()) ||
+    (await resolveYoutubeTitle(youtube_url, 'Без названия'));
   db.prepare('INSERT INTO videos (title, youtube_url, sort_order) VALUES (?, ?, ?)').run(
-    title, youtube_url, parseInt(sort_order, 10) || 0
+    resolvedTitle,
+    youtube_url,
+    parseInt(sort_order, 10) || 0
   );
   res.redirect('/admin/videos');
 });
@@ -198,21 +268,60 @@ router.post('/settings', requireAdmin, (req, res) => {
 
 // --- Vizitka ---
 router.get('/vizitka', requireAdmin, (_req, res) => {
-  const sections = db.prepare('SELECT * FROM vizitka_sections ORDER BY sort_order').all();
-  res.render('admin/vizitka', { title: 'Визитка', sections });
+  const sections = getVizitkaSections();
+  const coaches = getVizitkaCoaches();
+  const intro = sections.find((s) => s.sort_order === 1) ?? sections[0] ?? null;
+  const arena = sections.find((s) => s.sort_order === 2) ?? null;
+  res.render('admin/vizitka', { title: 'Визитка', intro, arena, coaches });
 });
 
-router.post('/vizitka', requireAdmin, (req, res) => {
-  const { id, title, body, sort_order } = req.body;
-  if (id) {
-    db.prepare('UPDATE vizitka_sections SET title=?, body=?, sort_order=? WHERE id=?').run(
-      title, body, parseInt(sort_order, 10) || 0, id
-    );
-  } else {
-    db.prepare('INSERT INTO vizitka_sections (title, body, sort_order) VALUES (?, ?, ?)').run(
-      title, body, parseInt(sort_order, 10) || 0
-    );
+router.post('/vizitka/intro/:id', requireAdmin, (req, res) => {
+  const { title, body } = req.body;
+  db.prepare('UPDATE vizitka_sections SET title=?, body=? WHERE id=?').run(title, body, req.params.id);
+  res.redirect('/admin/vizitka');
+});
+
+router.post('/vizitka/arena/:id', requireAdmin, uploadVizitkaImage.single('image'), (req, res) => {
+  const existing = db.prepare('SELECT image FROM vizitka_sections WHERE id = ?').get(req.params.id) as
+    | { image: string | null }
+    | undefined;
+  if (!existing) {
+    res.status(404).send('Not found');
+    return;
   }
+  const { body } = req.body;
+  let image = existing.image;
+  if (req.body.remove_image === '1') {
+    image = null;
+  } else if (req.file) {
+    image = `/uploads/vizitka/${req.file.filename}`;
+  }
+  db.prepare('UPDATE vizitka_sections SET body=?, image=? WHERE id=?').run(body, image, req.params.id);
+  res.redirect('/admin/vizitka');
+});
+
+router.post('/vizitka/coach/:id', requireAdmin, uploadVizitkaCoachPhoto.single('photo'), (req, res) => {
+  const existing = db.prepare('SELECT photo FROM vizitka_coaches WHERE id = ?').get(req.params.id) as
+    | { photo: string }
+    | undefined;
+  if (!existing) {
+    res.status(404).send('Not found');
+    return;
+  }
+  const { role, name, bio } = req.body;
+  let photo = existing.photo;
+  if (req.body.remove_photo === '1') {
+    photo = '';
+  } else if (req.file) {
+    photo = `/uploads/vizitka/coaches/${req.file.filename}`;
+  }
+  db.prepare('UPDATE vizitka_coaches SET role=?, name=?, bio=?, photo=? WHERE id=?').run(
+    role,
+    name,
+    bio,
+    photo,
+    req.params.id
+  );
   res.redirect('/admin/vizitka');
 });
 

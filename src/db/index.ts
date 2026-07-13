@@ -29,6 +29,25 @@ function applySchemaPatches(): void {
   if (!groupCols.some((c) => c.name === 'is_schedule_only')) {
     db.exec('ALTER TABLE groups ADD COLUMN is_schedule_only INTEGER NOT NULL DEFAULT 0');
   }
+  if (!groupCols.some((c) => c.name === 'photo')) {
+    db.exec('ALTER TABLE groups ADD COLUMN photo TEXT');
+  }
+
+  const vizitkaCols = db.prepare('PRAGMA table_info(vizitka_sections)').all() as { name: string }[];
+  if (!vizitkaCols.some((c) => c.name === 'image')) {
+    db.exec('ALTER TABLE vizitka_sections ADD COLUMN image TEXT');
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vizitka_coaches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      photo TEXT NOT NULL,
+      role TEXT NOT NULL,
+      name TEXT NOT NULL,
+      bio TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    )
+  `);
 
   db.prepare(`UPDATE groups SET is_schedule_only = 1 WHERE slug = 'chu-do-master'`).run();
 
@@ -53,7 +72,7 @@ function refreshNewsExcerpts(): void {
   );
   const update = db.prepare('UPDATE news SET excerpt = ? WHERE id = ?');
   for (const row of rows) {
-    const excerpt = buildNewsExcerpt(row.excerpt, row.body);
+    const excerpt = buildNewsExcerpt(null, row.body);
     if (excerpt !== (row.excerpt ?? '')) {
       update.run(excerpt || null, row.id);
     }

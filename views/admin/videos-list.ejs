@@ -12,7 +12,10 @@
     <div class="admin-main">
       <h1><%= title %></h1>
       <form class="form-card" method="post" action="/admin/videos" style="margin-bottom:2rem;">
-        <div class="form-group"><label>Название</label><input type="text" name="title" required></div>
+        <div class="form-group">
+          <label>Название</label>
+          <input type="text" name="title" placeholder="Подтянется с YouTube, если оставить пустым">
+        </div>
         <div class="form-group"><label>YouTube URL</label><input type="url" name="youtube_url" required></div>
         <div class="form-group"><label>Порядок</label><input type="number" name="sort_order" value="0"></div>
         <button type="submit" class="btn btn--primary">Добавить</button>

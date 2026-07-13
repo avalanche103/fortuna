@@ -2,6 +2,7 @@ import db from '../db';
 import { CHUDO_MASTER_SLUG } from '../constants';
 import { queryRow, queryRows } from '../db/helpers';
 import { buildNewsExcerpt, getNewsCoverImage as extractNewsCoverImage } from '../utils/news-text';
+import { youtubeEmbedUrl, youtubeThumb } from '../utils/youtube';
 import type {
   ArchiveItem,
   ArchiveYear,
@@ -13,6 +14,7 @@ import type {
   SiteSettings,
   Video,
   VizitkaSection,
+  VizitkaCoach,
 } from '../types';
 
 export function getSettings(): SiteSettings {
@@ -162,7 +164,12 @@ export function getScheduleEntries(monthId: number): ScheduleEntry[] {
   );
 }
 
-export function getVideos(limit = 6): Video[] {
+export function getVideos(limit?: number): Video[] {
+  if (limit === undefined) {
+    return queryRows<Video>(
+      db.prepare('SELECT * FROM videos ORDER BY sort_order, published_at DESC').all()
+    );
+  }
   return queryRows<Video>(
     db.prepare('SELECT * FROM videos ORDER BY sort_order, published_at DESC LIMIT ?').all(limit)
   );
@@ -170,6 +177,10 @@ export function getVideos(limit = 6): Video[] {
 
 export function getVizitkaSections(): VizitkaSection[] {
   return queryRows<VizitkaSection>(db.prepare('SELECT * FROM vizitka_sections ORDER BY sort_order').all());
+}
+
+export function getVizitkaCoaches(): VizitkaCoach[] {
+  return queryRows<VizitkaCoach>(db.prepare('SELECT * FROM vizitka_coaches ORDER BY sort_order').all());
 }
 
 export function getArchiveYears(type: 'archive' | 'gallery'): ArchiveYear[] {
@@ -209,18 +220,17 @@ export function getNewsCoverImage(article: Pick<News, 'body'>): string | null {
   return extractNewsCoverImage(article.body);
 }
 
+export function splitPlayerName(name: string): { surname: string; firstName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { surname: '', firstName: '' };
+  if (parts.length === 1) return { surname: parts[0], firstName: '\u00a0' };
+  return { surname: parts[0], firstName: parts.slice(1).join(' ') };
+}
+
 export function formatDateRu(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function youtubeEmbedUrl(url: string): string {
-  const match = url.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
-  return match ? `https://www.youtube.com/embed/${match[1]}` : url;
-}
-
-export function youtubeThumb(url: string): string {
-  const match = url.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
-  return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : '';
-}
+export { youtubeEmbedUrl, youtubeThumb };

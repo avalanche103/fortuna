@@ -2,7 +2,8 @@ import db, { runMigrations } from './index';
 import { queryRow } from './helpers';
 import { CHUDO_MASTER_SLUG } from '../constants';
 import { buildNewsExcerpt } from '../utils/news-text';
-import { fetchPage, normalizePlayerSlug, isPlaceholderPhoto } from './importer/utils';
+import { resolveYoutubeTitle } from '../utils/youtube';
+import { fetchPage, normalizePlayerSlug, isPlaceholderPhoto, sleep } from './importer/utils';
 import {
   parseArchiveYearItems,
   parseGalleryPhotos,
@@ -74,22 +75,31 @@ function clearAllContent(): void {
     DELETE FROM players;
     DELETE FROM news;
     DELETE FROM videos;
+    DELETE FROM vizitka_coaches;
     DELETE FROM vizitka_sections;
   `);
 }
 
 function clearSections(sections: Set<string>): void {
   if (sections.has('news')) db.exec('DELETE FROM news');
-  if (sections.has('players') || sections.has('graduates')) {
+  if (sections.has('players') && sections.has('graduates')) {
     db.exec('DELETE FROM group_players');
     db.exec('DELETE FROM players');
+  } else if (sections.has('players')) {
+    db.exec('DELETE FROM group_players');
+    db.exec('DELETE FROM players WHERE is_graduate = 0');
+  } else if (sections.has('graduates')) {
+    db.exec('DELETE FROM players WHERE is_graduate = 1');
   }
   if (sections.has('schedule')) {
     db.exec('DELETE FROM schedule_entries');
     db.exec('DELETE FROM schedule_months');
   }
   if (sections.has('videos')) db.exec('DELETE FROM videos');
-  if (sections.has('vizitka')) db.exec('DELETE FROM vizitka_sections');
+  if (sections.has('vizitka')) {
+    db.exec('DELETE FROM vizitka_coaches');
+    db.exec('DELETE FROM vizitka_sections');
+  }
   if (sections.has('archive') || sections.has('gallery')) {
     if (sections.has('archive') && sections.has('gallery')) {
       db.exec('DELETE FROM archive_photos');
@@ -213,25 +223,21 @@ async function importNews(opts: ImportOptions): Promise<void> {
     const { items } = parseNewsListPage(html);
 
     for (const item of items) {
-      let body = item.excerpt;
+      let body = '';
       if (opts.fetchBodies) {
         try {
           const articleHtml = await fetchPage(item.url, 200);
-          const detailBody = parseNewsArticle(articleHtml);
-          if (detailBody) body = detailBody;
+          body = parseNewsArticle(articleHtml, item.excerpt, item.coverImage);
         } catch {
-          // keep excerpt / cover fallback below
+          body = parseNewsArticle('', item.excerpt, item.coverImage);
         }
-      }
-      if (!body?.trim() && item.coverImage) {
-        body = `<p><img src="${item.coverImage}" alt=""></p>`;
-      } else if (item.coverImage && !(body ?? '').includes('<img')) {
-        body = `<p><img src="${item.coverImage}" alt=""></p>\n${body ?? ''}`.trim();
+      } else {
+        body = parseNewsArticle('', item.excerpt, item.coverImage);
       }
 
-      const excerpt = buildNewsExcerpt(item.excerpt, body);
+      const excerpt = buildNewsExcerpt(null, body) || null;
 
-      insert.run(item.title, item.slug, item.category, excerpt || null, body, item.publishedAt);
+      insert.run(item.title, item.slug, item.category, excerpt, body, item.publishedAt);
       imported++;
     }
     console.log(`  страница ${page}/${maxPage}, всего ${imported}`);
@@ -243,26 +249,37 @@ async function importPlayers(): Promise<void> {
   console.log('→ Группы и игроки...');
   const html = await fetchPage(`${BASE}/gruppy`);
   const groupsData = parseGroupsPage(html);
-  const chudoPlayers = groupsData.get(CHUDO_MASTER_SLUG) ?? [];
+  const chudoSection = groupsData.get(CHUDO_MASTER_SLUG);
+  const chudoPlayers = chudoSection?.players ?? [];
   groupsData.delete(CHUDO_MASTER_SLUG);
   let count = 0;
 
   const linkGroup = db.prepare(
     'INSERT OR REPLACE INTO group_players (group_id, player_id, number) VALUES (?, ?, ?)'
   );
+  const updateGroupPhoto = db.prepare('UPDATE groups SET photo = ? WHERE id = ?');
 
-  for (const [groupSlug, players] of groupsData) {
+  for (const [groupSlug, section] of groupsData) {
     const groupId = getGroupIdBySlug(groupSlug);
     if (!groupId) {
       console.warn(`  ! группа не найдена: ${groupSlug}`);
       continue;
     }
 
-    for (const player of players) {
+    if (section.photo) {
+      updateGroupPhoto.run(section.photo, groupId);
+    }
+
+    for (const player of section.players) {
       const playerId = upsertPlayer(player, { isGraduate: false });
       linkGroup.run(groupId, playerId, player.number);
       count++;
     }
+  }
+
+  const chudoGroupId = getGroupIdBySlug(CHUDO_MASTER_SLUG);
+  if (chudoGroupId && chudoSection?.photo) {
+    updateGroupPhoto.run(chudoSection.photo, chudoGroupId);
   }
 
   for (const player of chudoPlayers) {
@@ -329,10 +346,24 @@ async function importSchedule(): Promise<void> {
 async function importVizitka(): Promise<void> {
   console.log('→ Визитка...');
   const html = await fetchPage(`${BASE}/vizitka`);
-  const { title, body } = parseVizitkaPage(html);
+  const { title, intro, coaches, footer, footerPhoto } = parseVizitkaPage(html);
+  db.prepare('DELETE FROM vizitka_coaches').run();
   db.prepare('DELETE FROM vizitka_sections').run();
-  db.prepare('INSERT INTO vizitka_sections (title, body, sort_order) VALUES (?, ?, 1)').run(title, body);
-  console.log('  ✓ визитка обновлена');
+  db.prepare('INSERT INTO vizitka_sections (title, body, sort_order) VALUES (?, ?, 1)').run(title, intro);
+  if (footer) {
+    db.prepare('INSERT INTO vizitka_sections (title, body, image, sort_order) VALUES (?, ?, ?, 2)').run(
+      'Арена',
+      footer,
+      footerPhoto
+    );
+  }
+  const insertCoach = db.prepare(
+    'INSERT INTO vizitka_coaches (photo, role, name, bio, sort_order) VALUES (?, ?, ?, ?, ?)'
+  );
+  coaches.forEach((coach, i) => {
+    insertCoach.run(coach.photo, coach.role, coach.name, coach.bio, i + 1);
+  });
+  console.log(`  ✓ визитка: ${coaches.length} тренеров`);
 }
 
 async function importVideos(): Promise<void> {
@@ -341,7 +372,12 @@ async function importVideos(): Promise<void> {
   const videos = parseHomeVideos(html);
   db.prepare('DELETE FROM videos').run();
   const insert = db.prepare('INSERT INTO videos (title, youtube_url, sort_order) VALUES (?, ?, ?)');
-  videos.forEach((v, i) => insert.run(v.title, v.url, i));
+  for (let i = 0; i < videos.length; i++) {
+    const video = videos[i];
+    const title = await resolveYoutubeTitle(video.url, `FC Fortuna TV #${i + 1}`);
+    insert.run(title, video.url, i);
+    if (i < videos.length - 1) await sleep(150);
+  }
   console.log(`  ✓ ${videos.length} видео`);
 }
 

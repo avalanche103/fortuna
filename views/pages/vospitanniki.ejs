@@ -15,10 +15,11 @@
     <div class="container section" style="padding-top:0;">
       <div class="players-grid">
         <% graduates.forEach(function(p) { %>
+          <% const nameParts = splitPlayerName(p.name); %>
           <a href="/vospitanniki/<%= p.slug %>" class="player-card">
             <% if (p.photo) { %><img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
-            <% } else { %><div class="player-card__photo player-card__photo--placeholder"><%= p.name.charAt(0) %></div><% } %>
-            <div class="player-card__name"><%= p.name %></div>
+            <% } else { %><div class="player-card__photo player-card__photo--placeholder"><%= nameParts.surname.charAt(0) %></div><% } %>
+            <%- include('../partials/player-name', { name: p.name }) %>
             <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
           </a>
         <% }); %>

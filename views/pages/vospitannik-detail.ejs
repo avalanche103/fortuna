@@ -11,7 +11,7 @@
   <%- include('../partials/ticker') %>
   <%- include('../partials/header') %>
   <main>
-    <div class="page-header"><div class="container"><h1><%= graduate.name %></h1></div></div>
+    <div class="page-header"><div class="container"><%- include('../partials/player-name', { name: graduate.name, heading: true }) %></div></div>
     <div class="container section" style="padding-top:0;">
       <div style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
         <% if (graduate.photo) { %>

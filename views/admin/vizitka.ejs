@@ -10,22 +10,96 @@
   <div class="admin-layout">
     <%- include('sidebar') %>
     <div class="admin-main">
-      <h1><%= title %></h1>
-      <% sections.forEach(function(s) { %>
-        <form class="form-card" method="post" action="/admin/vizitka" style="margin-bottom:1.5rem;">
-          <input type="hidden" name="id" value="<%= s.id %>">
-          <div class="form-group"><label>Заголовок</label><input type="text" name="title" value="<%= s.title %>"></div>
-          <div class="form-group"><label>Текст</label><textarea name="body" style="min-height:160px;"><%= s.body %></textarea></div>
-          <div class="form-group"><label>Порядок</label><input type="number" name="sort_order" value="<%= s.sort_order %>"></div>
-          <button type="submit" class="btn btn--primary">Сохранить</button>
-        </form>
-      <% }); %>
-      <h2>Новый раздел</h2>
-      <form class="form-card" method="post" action="/admin/vizitka">
-        <div class="form-group"><label>Заголовок</label><input type="text" name="title" required></div>
-        <div class="form-group"><label>Текст</label><textarea name="body" required></textarea></div>
-        <button type="submit" class="btn btn--secondary">Добавить</button>
-      </form>
+      <div class="admin-header">
+        <h1><%= title %></h1>
+        <a href="/vizitka" target="_blank" class="btn btn--outline">Открыть на сайте</a>
+      </div>
+
+      <% if (intro) { %>
+        <section class="vizitka-admin-block">
+          <h2 class="vizitka-admin-block__title">Вводный текст</h2>
+          <p class="vizitka-admin-block__hint">Год основания, членство, адрес — отображается вверху страницы.</p>
+          <form class="form-card" method="post" action="/admin/vizitka/intro/<%= intro.id %>">
+            <div class="form-group">
+              <label>Заголовок</label>
+              <input type="text" name="title" value="<%= intro.title %>" required>
+            </div>
+            <div class="form-group">
+              <label>Текст</label>
+              <textarea name="body" rows="8" required><%= intro.body %></textarea>
+            </div>
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+          </form>
+        </section>
+      <% } %>
+
+      <section class="vizitka-admin-block">
+        <h2 class="vizitka-admin-block__title">Тренеры</h2>
+        <p class="vizitka-admin-block__hint">Три колонки с фото и описанием. Перенос строки в имени сохраняется.</p>
+        <div class="vizitka-admin-coaches">
+          <% coaches.forEach(function(coach) { %>
+            <form class="form-card vizitka-admin-coach" method="post" action="/admin/vizitka/coach/<%= coach.id %>" enctype="multipart/form-data">
+              <% if (coach.photo) { %>
+                <img class="vizitka-admin-coach__photo" src="<%= coach.photo %>" alt="<%= coach.name %>">
+              <% } else { %>
+                <div class="vizitka-admin-coach__photo vizitka-admin-coach__photo--empty">Нет фото</div>
+              <% } %>
+              <div class="form-group">
+                <label>Должность</label>
+                <input type="text" name="role" value="<%= coach.role %>">
+              </div>
+              <div class="form-group">
+                <label>Имя</label>
+                <textarea name="name" rows="3" required><%= coach.name %></textarea>
+              </div>
+              <div class="form-group">
+                <label>Описание</label>
+                <textarea name="bio" rows="10" required><%= coach.bio %></textarea>
+              </div>
+              <div class="form-group">
+                <label>Фото</label>
+                <input type="file" name="photo" accept="image/*">
+                <% if (coach.photo) { %>
+                  <label class="form-check" style="margin-top:0.5rem;">
+                    <input type="checkbox" name="remove_photo" value="1">
+                    Удалить текущее фото
+                  </label>
+                <% } %>
+              </div>
+              <button type="submit" class="btn btn--primary">Сохранить</button>
+            </form>
+          <% }); %>
+        </div>
+      </section>
+
+      <% if (arena) { %>
+        <section class="vizitka-admin-block">
+          <h2 class="vizitka-admin-block__title">Арена</h2>
+          <p class="vizitka-admin-block__hint">Фото стадиона и подпись внизу страницы.</p>
+          <form class="form-card" method="post" action="/admin/vizitka/arena/<%= arena.id %>" enctype="multipart/form-data">
+            <% if (arena.image) { %>
+              <img class="vizitka-admin-arena__photo" src="<%= arena.image %>" alt="Стадион">
+            <% } else { %>
+              <div class="vizitka-admin-arena__photo vizitka-admin-coach__photo--empty">Нет фото</div>
+            <% } %>
+            <div class="form-group">
+              <label>Текст</label>
+              <textarea name="body" rows="4" required><%= arena.body %></textarea>
+            </div>
+            <div class="form-group">
+              <label>Фото стадиона</label>
+              <input type="file" name="image" accept="image/*">
+              <% if (arena.image) { %>
+                <label class="form-check" style="margin-top:0.5rem;">
+                  <input type="checkbox" name="remove_image" value="1">
+                  Удалить текущее фото
+                </label>
+              <% } %>
+            </div>
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+          </form>
+        </section>
+      <% } %>
     </div>
   </div>
 </body>

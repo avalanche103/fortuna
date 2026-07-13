@@ -451,6 +451,15 @@ img { max-width: 100%; height: auto; display: block; }
   text-align: center;
 }
 
+.player-card__photo-wrap {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.player-card__photo-wrap .player-card__photo {
+  margin-bottom: 0;
+}
+
 .player-card__photo {
   width: 100%;
   aspect-ratio: 1;
@@ -475,6 +484,27 @@ img { max-width: 100%; height: auto; display: block; }
   text-transform: uppercase;
 }
 
+.player-card__name--stacked {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 2.5rem;
+  line-height: 1.15;
+}
+
+.player-card__surname,
+.player-card__firstname {
+  display: block;
+}
+
+.player-card__firstname {
+  margin-top: 0.15rem;
+}
+
+.players-grid--graduates .player-card__name {
+  min-height: 2.6rem;
+}
+
 .player-card__meta {
   font-size: 0.8rem;
   color: var(--gray-600);
@@ -494,11 +524,107 @@ img { max-width: 100%; height: auto; display: block; }
   border-radius: 4px;
 }
 
+.player-card__badge--on-photo {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  margin-top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
 /* Video grid */
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .video-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-carousel__viewport {
+  overflow: hidden;
+}
+
+.video-carousel__page {
+  display: none;
+}
+
+.video-carousel__page.is-active {
+  display: block;
+}
+
+.video-carousel__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.video-carousel__btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--blue);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.video-carousel__btn:hover {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.video-carousel__dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.video-carousel__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--gray-200);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.video-carousel__dot.is-active {
+  background: var(--orange);
+  transform: scale(1.15);
+}
+
+a.video-card {
+  display: block;
+  color: var(--gray-900);
+  text-decoration: none;
+}
+
+a.video-card:hover {
+  color: var(--gray-900);
 }
 
 .video-card__thumb {
@@ -510,9 +636,15 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 .video-card__title {
-  padding: 0.75rem 1rem;
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
+  padding: 0.75rem 1rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-style: normal;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--gray-900);
 }
 
 /* Recruitment block */
@@ -562,7 +694,110 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--white);
 }
 
-.page-header h1::after { display: none; }
+.page-header__player-name {
+  font-size: 2.5rem;
+  color: var(--white);
+  min-height: auto;
+  line-height: 1.1;
+}
+
+.page-header h1::after,
+.page-header__player-name::after { display: none; }
+
+/* Vizitka */
+.vizitka-page .card {
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.vizitka-intro__title {
+  color: var(--blue);
+  margin-bottom: 1rem;
+}
+
+.vizitka-intro__body {
+  white-space: pre-line;
+  line-height: 1.65;
+}
+
+.vizitka-coaches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.vizitka-coach {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 1.25rem;
+  margin-bottom: 0;
+}
+
+.vizitka-coach__photo {
+  width: 100%;
+  max-width: 210px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  background: var(--gray-100);
+}
+
+.vizitka-coach__role {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+}
+
+.vizitka-coach__name {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--blue);
+  text-transform: uppercase;
+  line-height: 1.25;
+  margin-bottom: 0.85rem;
+  white-space: pre-line;
+}
+
+.vizitka-coach__bio {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--gray-800);
+  white-space: pre-line;
+  text-align: left;
+}
+
+.vizitka-arena {
+  text-align: center;
+}
+
+.vizitka-arena__photo {
+  width: 100%;
+  max-width: 610px;
+  border-radius: var(--radius);
+  margin: 0 auto 1rem;
+  display: block;
+}
+
+.vizitka-arena__text {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .vizitka-coaches {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
 
 /* Schedule table */
 .schedule-table {
@@ -622,6 +857,26 @@ img { max-width: 100%; height: auto; display: block; }
   margin-bottom: 1.25rem;
   padding-bottom: 0.5rem;
   border-bottom: 3px solid var(--orange);
+}
+
+.group-block__photo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+}
+
+.group-block__photo {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
 }
 
 /* Archive years */

@@ -20,6 +20,7 @@ import {
   getSettings,
   getVideos,
   getVizitkaSections,
+  getVizitkaCoaches,
   MONTH_NAMES,
   formatDateRu,
   getNewsExcerpt,
@@ -40,7 +41,7 @@ router.get('/', (req: Request, res: Response) => {
     news: getLatestNews(8),
     birthdays,
     monthName,
-    videos: getVideos(4),
+    videos: getVideos(),
     graduates: getFeaturedGraduates(12),
     settings,
     formatDateRu,
@@ -96,6 +97,7 @@ router.get('/vizitka', (_req: Request, res: Response) => {
   res.render('pages/vizitka', {
     title: 'Визитка',
     sections: getVizitkaSections(),
+    coaches: getVizitkaCoaches(),
   });
 });
 

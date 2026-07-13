@@ -132,8 +132,19 @@ async function downloadPlayerPhotos(manifest: Manifest): Promise<number> {
 
   for (const page of [`${BASE}/gruppy`, `${BASE}/vospitanniki`]) {
     const html = await fetchPage(page, 200);
-    const players =
-      page.includes('gruppy') ? [...parseGroupsPage(html).values()].flat() : parseGraduatesPage(html);
+    let players: ReturnType<typeof parseGraduatesPage>;
+    if (page.includes('gruppy')) {
+      const groupsData = parseGroupsPage(html);
+      for (const [slug, section] of groupsData) {
+        if (!section.photo) continue;
+        const local = await downloadImage(section.photo, 'groups', manifest);
+        if (!local) continue;
+        db.prepare('UPDATE groups SET photo = ? WHERE slug = ?').run(local, slug);
+      }
+      players = [...groupsData.values()].flatMap((section) => section.players);
+    } else {
+      players = parseGraduatesPage(html);
+    }
 
     for (const player of players) {
       if (!player.photo || isPlaceholderPhoto(player.photo)) continue;
@@ -247,29 +258,48 @@ async function downloadNewsImages(manifest: Manifest): Promise<number> {
 
 async function downloadVizitkaImages(manifest: Manifest): Promise<number> {
   console.log('→ Фото визитки...');
-  const sections = queryRows<{ id: number; body: string }>(
-    db.prepare('SELECT id, body FROM vizitka_sections').all()
-  );
-  if (!sections.length) {
-    const html = await fetchPage(`${BASE}/vizitka`, 200);
-    const urls = extractImageUrls(html);
-    let count = 0;
-    for (const url of urls) {
-      if (await downloadImage(url, 'vizitka', manifest)) count++;
-    }
-    console.log(`  ✓ ${count} фото`);
-    return count;
-  }
-
   let count = 0;
-  for (const section of sections) {
-    const body = await replaceHtmlImages(section.body, 'vizitka', manifest);
-    if (body !== section.body) {
-      db.prepare('UPDATE vizitka_sections SET body=? WHERE id=?').run(body, section.id);
+
+  const coaches = queryRows<{ id: number; photo: string }>(
+    db.prepare('SELECT id, photo FROM vizitka_coaches ORDER BY sort_order').all()
+  );
+  for (const coach of coaches) {
+    if (!isRemoteUrl(coach.photo)) continue;
+    const local = await downloadImage(coach.photo, 'vizitka/coaches', manifest);
+    if (local && local !== coach.photo) {
+      db.prepare('UPDATE vizitka_coaches SET photo=? WHERE id=?').run(local, coach.id);
       count++;
     }
   }
-  console.log(`  ✓ обновлено ${count} разделов`);
+
+  const sections = queryRows<{ id: number; body: string; image: string | null }>(
+    db.prepare('SELECT id, body, image FROM vizitka_sections ORDER BY sort_order').all()
+  );
+  for (const section of sections) {
+    let image = section.image;
+    if (image && isRemoteUrl(image)) {
+      const local = await downloadImage(image, 'vizitka', manifest);
+      if (local && local !== image) {
+        image = local;
+        count++;
+      }
+    }
+    const body = await replaceHtmlImages(section.body, 'vizitka', manifest);
+    if (body !== section.body || image !== section.image) {
+      db.prepare('UPDATE vizitka_sections SET body=?, image=? WHERE id=?').run(body, image, section.id);
+    }
+  }
+
+  if (!coaches.length && !sections.length) {
+    const html = await fetchPage(`${BASE}/vizitka`, 200);
+    const urls = extractImageUrls(html).filter((u) => /page\/2|stadium|viber|изображение/i.test(u));
+    for (const url of urls) {
+      const subdir = /stadium/i.test(url) ? 'vizitka' : 'vizitka/coaches';
+      if (await downloadImage(url, subdir, manifest)) count++;
+    }
+  }
+
+  console.log(`  ✓ ${count} фото визитки`);
   return count;
 }
 

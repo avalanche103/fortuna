@@ -16,6 +16,7 @@ export interface Group {
   birth_years: string | null;
   sort_order: number;
   is_schedule_only: number;
+  photo: string | null;
 }
 
 export interface Player {
@@ -82,6 +83,16 @@ export interface VizitkaSection {
   id: number;
   title: string;
   body: string;
+  image: string | null;
+  sort_order: number;
+}
+
+export interface VizitkaCoach {
+  id: number;
+  photo: string;
+  role: string;
+  name: string;
+  bio: string;
   sort_order: number;
 }
 

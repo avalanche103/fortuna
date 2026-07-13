@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <div class="admin-header">
+        <h1><%= title %></h1>
+      </div>
+      <p style="color:#666;margin-bottom:1.5rem;">Общее фото группы отображается над списком игроков на странице «Группы».</p>
+      <div class="groups-admin-list">
+        <% groups.forEach(function(group) { %>
+          <section class="groups-admin-card">
+            <h2 class="groups-admin-card__title"><%= group.name %></h2>
+            <% if (group.photo) { %>
+              <img class="groups-admin-card__photo" src="<%= group.photo %>" alt="<%= group.name %>">
+            <% } else { %>
+              <div class="groups-admin-card__photo groups-admin-card__photo--empty">Нет фото</div>
+            <% } %>
+            <form action="/admin/groups/<%= group.id %>" method="post" enctype="multipart/form-data" class="groups-admin-card__form">
+              <label class="form-label">Загрузить фото</label>
+              <input type="file" name="photo" accept="image/*">
+              <% if (group.photo) { %>
+                <label class="form-check" style="margin-top:0.75rem;">
+                  <input type="checkbox" name="remove_photo" value="1">
+                  Удалить текущее фото
+                </label>
+              <% } %>
+              <button type="submit" class="btn btn--primary" style="margin-top:0.75rem;">Сохранить</button>
+            </form>
+          </section>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

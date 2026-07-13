@@ -85,22 +85,45 @@ export function parseNewsListPage(html: string): { items: NewsPreview[]; totalPa
   return { items, totalPages };
 }
 
-export function parseNewsArticle(html: string): string {
+export function parseNewsArticle(
+  html: string,
+  listExcerpt = '',
+  coverImage: string | null = null
+): string {
   const $ = cheerio.load(html);
   const parts: string[] = [];
+  const seenImages = new Set<string>();
 
-  const mainImg = $('.mg-news-details .main-news-img img, .main-news-img img').first().attr('src');
-  if (mainImg && !/kk\.png|ball\.gif|logo/i.test(mainImg)) {
-    parts.push(`<p><img src="${absUrl(mainImg)}" alt=""></p>`);
+  const intro = cleanExcerptText(listExcerpt);
+  if (intro) {
+    parts.push(`<p>${intro}</p>`);
   }
 
-  const bodyHtml = $('.mg-news-full-desc').html() ?? '';
-  const sanitized = sanitizeArticleHtml(bodyHtml);
-  if (sanitized) parts.push(sanitized);
+  const addImage = (src: string | undefined | null) => {
+    const url = absUrl(src ?? '');
+    if (!url || /kk\.png|ball\.gif|logo|no-img/i.test(url)) return;
+    const key = url.replace('://www.', '://').toLowerCase();
+    if (seenImages.has(key)) return;
+    seenImages.add(key);
+    parts.push(`<p><img src="${url}" alt=""></p>`);
+  };
 
-  if (!parts.length) {
-    const plain = htmlToPlain(bodyHtml);
-    if (plain) parts.push(`<p>${plain.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`);
+  addImage($('.mg-news-details .main-news-img img, .main-news-img img').first().attr('src'));
+  $('#mg-gallery a.pic').each((_, el) => {
+    addImage($(el).attr('href') || $(el).find('img').attr('src'));
+  });
+  $('#mg-gallery .mg-gallery-list img').each((_, el) => addImage($(el).attr('src')));
+  $('.mg-news-full-desc img').each((_, el) => addImage($(el).attr('src')));
+  addImage(coverImage);
+
+  const fullDesc = $('.mg-news-full-desc').first().clone();
+  fullDesc.find('script, style, link, iframe, #mg-gallery, .gal').remove();
+  fullDesc.find('img').remove();
+  const remainder = sanitizeArticleHtml(fullDesc.html() ?? '');
+  if (remainder) parts.push(remainder);
+
+  if (!parts.length && coverImage) {
+    addImage(coverImage);
   }
 
   return parts.join('\n').trim();
@@ -129,9 +152,14 @@ function sanitizeArticleHtml(html: string): string {
   return htmlToPlain(result) ? result : '';
 }
 
-export function parseGroupsPage(html: string): Map<string, PlayerCard[]> {
+export interface GroupSection {
+  players: PlayerCard[];
+  photo: string | null;
+}
+
+export function parseGroupsPage(html: string): Map<string, GroupSection> {
   const $ = cheerio.load(html);
-  const result = new Map<string, PlayerCard[]>();
+  const result = new Map<string, GroupSection>();
 
   $('.c-sub').each((_, subEl) => {
     const title = $(subEl).find('.c-sub__title').first().text().trim();
@@ -140,6 +168,9 @@ export function parseGroupsPage(html: string): Map<string, PlayerCard[]> {
 
     const section = $(subEl).closest('.l-col');
     const players: PlayerCard[] = [];
+    const groupPhotoSrc = absUrl(section.find('.c-sub__img img').first().attr('src') ?? '');
+    const photo =
+      groupPhotoSrc && !/no-img|kk\.png|ball\.gif/i.test(groupPhotoSrc) ? groupPhotoSrc : null;
 
     section.find('.c-goods__item').each((__, itemEl) => {
       const item = $(itemEl);
@@ -179,7 +210,7 @@ export function parseGroupsPage(html: string): Map<string, PlayerCard[]> {
       });
     });
 
-    result.set(groupSlug, players);
+    result.set(groupSlug, { players, photo });
   });
 
   return result;
@@ -268,14 +299,100 @@ export function parseSchedulePage(html: string): {
   return { year, month, groupNames, rows };
 }
 
-export function parseVizitkaPage(html: string): { title: string; body: string } {
+export function parseVizitkaPage(html: string): {
+  title: string;
+  intro: string;
+  coaches: { photo: string; role: string; name: string; bio: string }[];
+  footer: string;
+  footerPhoto: string | null;
+} {
   const $ = cheerio.load(html);
   const content = $('.static-page-content').first();
-  const title = content.find('h1').first().text().replace(/\s+/g, ' ').trim();
-  const clone = content.clone();
-  clone.find('h1').remove();
-  const body = htmlToPlain(clone.html() ?? '');
-  return { title: title || 'Визитка', body };
+  const title = content.find('h1').first().text().replace(/\s+/g, ' ').trim() || 'Визитка';
+
+  const introRoot = content.clone();
+  introRoot.find('h1').remove();
+  introRoot.find('.vizitka').nextAll().remove();
+  introRoot.find('.vizitka').remove();
+  const intro = htmlToPlain(introRoot.html() ?? '').trim();
+
+  const coaches: { photo: string; role: string; name: string; bio: string }[] = [];
+  const vizitka = content.find('.vizitka');
+  vizitka.find('img').each((_, img) => {
+    const src = $(img).attr('src') ?? '';
+    if (!src || /stadium/i.test(src)) return;
+
+    const photo = absUrl(src);
+    const textBlock = extractVizitkaCoachText($, img);
+    coaches.push({ photo, ...parseVizitkaCoachText($, textBlock) });
+  });
+
+  const footerRoot = $('<div></div>');
+  content.find('.vizitka').nextAll().each((_, el) => {
+    footerRoot.append($(el).clone());
+  });
+  const footerPhoto = absUrl(footerRoot.find('img').first().attr('src') ?? '') || null;
+  footerRoot.find('img').remove();
+  const footer = htmlToPlain(footerRoot.html() ?? '').trim();
+
+  return { title, intro, coaches, footer, footerPhoto };
+}
+
+function extractVizitkaCoachText($: cheerio.CheerioAPI, img: any): cheerio.Cheerio<any> {
+  const $img = $(img);
+  const parent = $img.parent();
+
+  if (parent.is('p')) {
+    const wrapper = $('<div></div>');
+    let afterImg = false;
+    parent.contents().each((_, node) => {
+      if (node === img) {
+        afterImg = true;
+        return;
+      }
+      if (afterImg) {
+        wrapper.append($(node).clone());
+      }
+    });
+    return wrapper;
+  }
+
+  return $img.siblings('p').first();
+}
+
+function normalizeCoachText(text: string): string {
+  return text
+    .replace(/\t+/g, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function parseVizitkaCoachText(
+  $: cheerio.CheerioAPI,
+  block: cheerio.Cheerio<any>
+): { role: string; name: string; bio: string } {
+  const strong = block.find('strong').first();
+  if (!strong.length) {
+    const plain = normalizeCoachText(htmlToPlain(block.html() ?? ''));
+    return { role: '', name: plain, bio: '' };
+  }
+
+  let name = normalizeCoachText(htmlToPlain(strong.html() ?? ''));
+  const blockHtml = block.html() ?? '';
+  const strongOuter = $.html(strong);
+  const splitAt = blockHtml.indexOf(strongOuter);
+  let role = splitAt >= 0 ? normalizeCoachText(htmlToPlain(blockHtml.slice(0, splitAt))) : '';
+  let bio = splitAt >= 0 ? normalizeCoachText(htmlToPlain(blockHtml.slice(splitAt + strongOuter.length))) : '';
+
+  const dateMatch = bio.match(/^\((\d{2}\.\d{2}\.\d{4})\)/);
+  if (dateMatch) {
+    name = `${name} (${dateMatch[1]})`;
+    bio = bio.slice(dateMatch[0].length).trim();
+  }
+
+  return { role, name, bio };
 }
 
 export function parseYearLinks(html: string, prefix: string): number[] {
@@ -341,15 +458,14 @@ export function parseGalleryPhotos(html: string): string[] {
   return photos;
 }
 
-export function parseHomeVideos(html: string): { title: string; url: string }[] {
+export function parseHomeVideos(html: string): { url: string }[] {
   const $ = cheerio.load(html);
-  const videos: { title: string; url: string }[] = [];
-  $('.block-video-main iframe').each((i, iframe) => {
+  const videos: { url: string }[] = [];
+  $('.block-video-main iframe').each((_, iframe) => {
     const src = $(iframe).attr('src') ?? '';
     const match = src.match(/embed\/([^?&]+)/);
     if (!match) return;
     videos.push({
-      title: `FC Fortuna TV #${i + 1}`,
       url: `https://www.youtube.com/watch?v=${match[1]}`,
     });
   });

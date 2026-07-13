@@ -1,0 +1,11 @@
+<%
+  const parts = splitPlayerName(name || '');
+  const isHeading = typeof heading !== 'undefined' && heading;
+  const cls = isHeading
+    ? 'player-card__name player-card__name--stacked page-header__player-name'
+    : (typeof className !== 'undefined' ? className : 'player-card__name player-card__name--stacked');
+%>
+<% if (isHeading) { %><h1 class="<%= cls %>"><% } else { %><div class="<%= cls %>"><% } %>
+  <span class="player-card__surname"><%= parts.surname %></span>
+  <span class="player-card__firstname"><%= parts.firstName %></span>
+<% if (isHeading) { %></h1><% } else { %></div><% } %>

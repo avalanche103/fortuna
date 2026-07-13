@@ -18,6 +18,31 @@
     document.querySelector('.nav-toggle')?.addEventListener('click', () => {
       document.querySelector('.nav')?.classList.toggle('open');
     });
+
+    (function initVideoCarousel() {
+      const carousel = document.getElementById('video-carousel');
+      if (!carousel) return;
+
+      const pages = [...carousel.querySelectorAll('.video-carousel__page')];
+      const dots = [...carousel.querySelectorAll('.video-carousel__dot')];
+      const prevBtn = carousel.querySelector('.video-carousel__btn--prev');
+      const nextBtn = carousel.querySelector('.video-carousel__btn--next');
+      if (pages.length <= 1) return;
+
+      let current = 0;
+
+      function showPage(index) {
+        current = (index + pages.length) % pages.length;
+        pages.forEach((page, i) => page.classList.toggle('is-active', i === current));
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === current));
+      }
+
+      prevBtn?.addEventListener('click', () => showPage(current - 1));
+      nextBtn?.addEventListener('click', () => showPage(current + 1));
+      dots.forEach((dot) => {
+        dot.addEventListener('click', () => showPage(parseInt(dot.dataset.page ?? '0', 10)));
+      });
+    })();
   </script>
 </body>
 </html>

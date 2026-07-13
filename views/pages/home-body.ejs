@@ -89,17 +89,39 @@
     <div class="section__header">
       <h2 class="section__title">FC Fortuna TV</h2>
     </div>
-    <div class="video-grid">
-      <% if (videos.length === 0) { %>
-        <p>Видео пока не добавлены.</p>
-      <% } %>
-      <% videos.forEach(function(v) { %>
-        <a href="<%= v.youtube_url %>" target="_blank" rel="noopener" class="card video-card">
-          <img class="video-card__thumb" src="<%= youtubeThumb(v.youtube_url) %>" alt="<%= v.title %>" loading="lazy">
-          <div class="video-card__title"><%= v.title %></div>
-        </a>
-      <% }); %>
-    </div>
+    <% if (videos.length === 0) { %>
+      <p>Видео пока не добавлены.</p>
+    <% } else { %>
+      <% const videosPerPage = 3; %>
+      <% const videoPageCount = Math.ceil(videos.length / videosPerPage); %>
+      <div class="video-carousel" id="video-carousel" data-per-page="<%= videosPerPage %>">
+        <div class="video-carousel__viewport">
+          <% for (let page = 0; page < videoPageCount; page++) { %>
+            <div class="video-carousel__page<%= page === 0 ? ' is-active' : '' %>" data-page="<%= page %>">
+              <div class="video-grid">
+                <% videos.slice(page * videosPerPage, page * videosPerPage + videosPerPage).forEach(function(v) { %>
+                  <a href="<%= v.youtube_url %>" target="_blank" rel="noopener" class="card video-card">
+                    <img class="video-card__thumb" src="<%= youtubeThumb(v.youtube_url) %>" alt="<%= v.title %>" loading="lazy">
+                    <div class="video-card__title"><%= v.title %></div>
+                  </a>
+                <% }); %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+        <% if (videoPageCount > 1) { %>
+          <div class="video-carousel__nav">
+            <button type="button" class="video-carousel__btn video-carousel__btn--prev" aria-label="Предыдущие видео">‹</button>
+            <div class="video-carousel__dots">
+              <% for (let page = 0; page < videoPageCount; page++) { %>
+                <button type="button" class="video-carousel__dot<%= page === 0 ? ' is-active' : '' %>" data-page="<%= page %>" aria-label="Страница <%= page + 1 %>"></button>
+              <% } %>
+            </div>
+            <button type="button" class="video-carousel__btn video-carousel__btn--next" aria-label="Следующие видео">›</button>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
   </div>
 </section>
 
@@ -109,15 +131,16 @@
       <h2 class="section__title">Воспитанники</h2>
       <a href="/vospitanniki" class="btn btn--outline">Перейти в раздел</a>
     </div>
-    <div class="players-grid">
+    <div class="players-grid players-grid--graduates">
       <% graduates.forEach(function(p) { %>
+        <% const nameParts = splitPlayerName(p.name); %>
         <a href="/vospitanniki/<%= p.slug %>" class="player-card">
           <% if (p.photo) { %>
             <img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
           <% } else { %>
-            <div class="player-card__photo player-card__photo--placeholder"><%= p.name.charAt(0) %></div>
+            <div class="player-card__photo player-card__photo--placeholder"><%= nameParts.surname.charAt(0) %></div>
           <% } %>
-          <div class="player-card__name"><%= p.name %></div>
+          <%- include('../partials/player-name', { name: p.name }) %>
           <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
         </a>
       <% }); %>

@@ -12,13 +12,44 @@
   <%- include('../partials/header') %>
   <main>
     <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
-    <div class="container section" style="padding-top:0;">
-      <% sections.forEach(function(s) { %>
-        <article class="card" style="margin-bottom:1.5rem;padding:2rem;">
-          <h2 style="color:var(--blue);margin-bottom:1rem;"><%= s.title %></h2>
-          <div style="white-space:pre-line;"><%= s.body %></div>
+    <div class="container section vizitka-page" style="padding-top:0;">
+      <% const intro = sections.find(function(s) { return s.sort_order === 1; }) || sections[0]; %>
+      <% const arena = sections.find(function(s) { return s.sort_order === 2; }); %>
+
+      <% if (intro) { %>
+        <article class="card vizitka-intro">
+          <h2 class="vizitka-intro__title"><%= intro.title %></h2>
+          <div class="vizitka-intro__body"><%= intro.body %></div>
         </article>
-      <% }); %>
+      <% } %>
+
+      <% if (coaches.length > 0) { %>
+        <div class="vizitka-coaches">
+          <% coaches.forEach(function(coach) { %>
+            <article class="vizitka-coach card">
+              <% if (coach.photo) { %>
+                <img class="vizitka-coach__photo" src="<%= coach.photo %>" alt="<%= coach.name %>" loading="lazy">
+              <% } %>
+              <% if (coach.role) { %>
+                <p class="vizitka-coach__role"><%= coach.role %></p>
+              <% } %>
+              <h3 class="vizitka-coach__name"><%= coach.name %></h3>
+              <% if (coach.bio) { %>
+                <div class="vizitka-coach__bio"><%= coach.bio %></div>
+              <% } %>
+            </article>
+          <% }); %>
+        </div>
+      <% } %>
+
+      <% if (arena) { %>
+        <article class="card vizitka-arena">
+          <% if (arena.image) { %>
+            <img class="vizitka-arena__photo" src="<%= arena.image %>" alt="Стадион «Зелёный луг»" loading="lazy">
+          <% } %>
+          <p class="vizitka-arena__text"><%= arena.body %></p>
+        </article>
+      <% } %>
     </div>
   </main>
   <%- include('../partials/footer') %>

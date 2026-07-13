@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS groups (
   slug TEXT NOT NULL UNIQUE,
   birth_years TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  is_schedule_only INTEGER NOT NULL DEFAULT 0
+  is_schedule_only INTEGER NOT NULL DEFAULT 0,
+  photo TEXT
 );
 
 CREATE TABLE IF NOT EXISTS players (
@@ -115,6 +116,16 @@ CREATE TABLE IF NOT EXISTS vizitka_sections (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
+  image TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS vizitka_coaches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  photo TEXT NOT NULL,
+  role TEXT NOT NULL,
+  name TEXT NOT NULL,
+  bio TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0
 );
 

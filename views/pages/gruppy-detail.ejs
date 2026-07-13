@@ -13,13 +13,22 @@
   <main>
     <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
     <div class="container section" style="padding-top:0;">
+      <% if (group.photo) { %>
+        <div class="group-block__photo-wrap">
+          <img class="group-block__photo" src="<%= group.photo %>" alt="<%= group.name %>">
+        </div>
+      <% } %>
       <div class="players-grid">
         <% players.forEach(function(p) { %>
           <div class="player-card">
-            <% if (p.photo) { %><img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
-            <% } else { %><div class="player-card__photo player-card__photo--placeholder"><%= p.number || '' %></div><% } %>
-            <div class="player-card__name"><%= p.name %></div>
-            <% if (p.is_chudo_master) { %><div class="player-card__badge">Чу-До Мастер</div><% } %>
+            <div class="player-card__photo-wrap">
+              <% if (p.photo) { %><img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
+              <% } else { %><div class="player-card__photo player-card__photo--placeholder"><%= p.number || '' %></div><% } %>
+              <% if (p.is_chudo_master && group.slug !== 'chu-do-master') { %>
+                <span class="player-card__badge player-card__badge--on-photo">Чу-До Мастер</span>
+              <% } %>
+            </div>
+            <%- include('../partials/player-name', { name: p.name }) %>
             <% if (p.birth_date) { %><div class="player-card__meta"><%= p.birth_date %></div><% } %>
           </div>
         <% }); %>
