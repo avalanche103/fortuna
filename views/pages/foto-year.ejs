@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <% if (!items.length) { %>
+        <p>В этом году альбомов пока нет.</p>
+      <% } else { %>
+        <div class="photo-albums">
+          <% items.forEach(function(item) { %>
+            <a href="/foto/<%= year %>/<%= item.slug %>" class="photo-album card">
+              <% if (item.cover_image) { %>
+                <img class="photo-album__cover" src="<%= item.cover_image %>" alt="<%= item.title %>" loading="lazy">
+              <% } else { %>
+                <div class="photo-album__cover photo-album__cover--placeholder"></div>
+              <% } %>
+              <div class="photo-album__body">
+                <h2 class="photo-album__title"><%= item.title %></h2>
+              </div>
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+      <p class="news-article__footer">
+        <a href="/foto" class="btn btn--outline">← Все годы</a>
+      </p>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

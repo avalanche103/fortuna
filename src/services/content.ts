@@ -1,10 +1,11 @@
 import db from '../db';
 import { CHUDO_MASTER_SLUG } from '../constants';
 import { queryRow, queryRows } from '../db/helpers';
-import { buildNewsExcerpt, getNewsCoverImage as extractNewsCoverImage } from '../utils/news-text';
+import { buildNewsExcerpt, getNewsCoverImage as extractNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
 import { youtubeEmbedUrl, youtubeThumb } from '../utils/youtube';
 import type {
   ArchiveItem,
+  ArchivePhoto,
   ArchiveYear,
   Group,
   News,
@@ -29,16 +30,92 @@ export function getSetting(key: string, fallback = ''): string {
   return setting?.value ?? fallback;
 }
 
+export function getRecruitmentContent(settings: SiteSettings = getSettings()): {
+  title: string;
+  subtitle: string;
+  teaser: string;
+  advantages: string;
+  phones: string;
+  hours: string;
+} {
+  const title = settings.recruitment_title || 'Сделайте правильный выбор!';
+  const subtitle = settings.recruitment_subtitle || '';
+  let body = settings.recruitment_body || '';
+
+  if (subtitle) {
+    const escaped = subtitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    body = body.replace(new RegExp('^\\s*' + escaped + '\\s*', 'i'), '').trim();
+  }
+
+  const marker = /ПОЧЕМУ ИМЕННО К НАМ\s*\?/i;
+  const match = body.match(marker);
+  let teaser = body;
+  let advantages = '';
+
+  if (match && match.index != null) {
+    teaser = body.slice(0, match.index).trim();
+    advantages = body.slice(match.index + match[0].length).trim();
+  }
+
+  return {
+    title,
+    subtitle,
+    teaser,
+    advantages,
+    phones: settings.banner_phones || '+375-29-661-19-31',
+    hours: settings.banner_hours || '',
+  };
+}
+
 export function getLatestNews(limit = 8): News[] {
   return queryRows<News>(db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ?').all(limit));
 }
 
-export function getNewsList(page = 1, perPage = 10): { items: News[]; total: number; pages: number } {
-  const total = queryRow<{ c: number }>(db.prepare('SELECT COUNT(*) as c FROM news').get())?.c ?? 0;
-  const items = queryRows<News>(
-    db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ? OFFSET ?').all(perPage, (page - 1) * perPage)
-  );
-  return { items, total, pages: Math.ceil(total / perPage) };
+export function getNewsYears(): number[] {
+  return queryRows<{ year: number }>(
+    db
+      .prepare(
+        `SELECT DISTINCT CAST(substr(published_at, 1, 4) AS INTEGER) AS year
+         FROM news
+         WHERE published_at IS NOT NULL AND length(published_at) >= 4
+         ORDER BY year DESC`
+      )
+      .all()
+  ).map((row) => row.year);
+}
+
+export function getNewsList(
+  page = 1,
+  perPage = 18,
+  year?: number | null
+): { items: News[]; total: number; pages: number } {
+  const yearFilter = year && year > 1900 ? year : null;
+  const total = yearFilter
+    ? (queryRow<{ c: number }>(
+        db
+          .prepare(`SELECT COUNT(*) as c FROM news WHERE substr(published_at, 1, 4) = ?`)
+          .get(String(yearFilter))
+      )?.c ?? 0)
+    : (queryRow<{ c: number }>(db.prepare('SELECT COUNT(*) as c FROM news').get())?.c ?? 0);
+
+  const offset = (page - 1) * perPage;
+  // По году — от первых записей года (январь и далее); без фильтра — сначала свежие
+  const items = yearFilter
+    ? queryRows<News>(
+        db
+          .prepare(
+            `SELECT * FROM news
+             WHERE substr(published_at, 1, 4) = ?
+             ORDER BY published_at ASC
+             LIMIT ? OFFSET ?`
+          )
+          .all(String(yearFilter), perPage, offset)
+      )
+    : queryRows<News>(
+        db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ? OFFSET ?').all(perPage, offset)
+      );
+
+  return { items, total, pages: Math.max(1, Math.ceil(total / perPage)) };
 }
 
 export function getNewsBySlug(slug: string): News | undefined {
@@ -207,6 +284,132 @@ export function getArchiveItem(yearId: number, slug: string): ArchiveItem | unde
   );
 }
 
+export function getArchivePhotos(itemId: number): ArchivePhoto[] {
+  return queryRows<ArchivePhoto>(
+    db.prepare('SELECT * FROM archive_photos WHERE item_id = ? ORDER BY sort_order, id').all(itemId)
+  );
+}
+
+export interface GalleryPhotoNav {
+  id: number;
+  filename: string;
+  caption: string | null;
+  year: number;
+  albumSlug: string;
+  albumTitle: string;
+  position: number;
+  total: number;
+}
+
+function mapGalleryPhotoNav(row: {
+  id: number;
+  filename: string;
+  caption: string | null;
+  year: number;
+  album_slug: string;
+  album_title: string;
+  position?: number;
+  total?: number;
+}): GalleryPhotoNav {
+  return {
+    id: row.id,
+    filename: row.filename,
+    caption: row.caption,
+    year: row.year,
+    albumSlug: row.album_slug,
+    albumTitle: row.album_title,
+    position: row.position ?? 0,
+    total: row.total ?? 0,
+  };
+}
+
+export function getGalleryPhotoNav(photoId: number): {
+  current: GalleryPhotoNav;
+  prev: GalleryPhotoNav | null;
+  next: GalleryPhotoNav | null;
+} | null {
+  const row = queryRow<{
+    id: number;
+    filename: string;
+    caption: string | null;
+    year: number;
+    album_slug: string;
+    album_title: string;
+    position: number;
+    total: number;
+    prev_id: number | null;
+    next_id: number | null;
+  }>(
+    db
+      .prepare(
+        `WITH ordered AS (
+           SELECT
+             ap.id,
+             ap.filename,
+             ap.caption,
+             ay.year,
+             ai.slug AS album_slug,
+             ai.title AS album_title,
+             ROW_NUMBER() OVER (
+               ORDER BY ay.year DESC, ai.sort_order ASC, ap.sort_order ASC, ap.id ASC
+             ) AS position,
+             COUNT(*) OVER () AS total,
+             LAG(ap.id) OVER (
+               ORDER BY ay.year DESC, ai.sort_order ASC, ap.sort_order ASC, ap.id ASC
+             ) AS prev_id,
+             LEAD(ap.id) OVER (
+               ORDER BY ay.year DESC, ai.sort_order ASC, ap.sort_order ASC, ap.id ASC
+             ) AS next_id
+           FROM archive_photos ap
+           JOIN archive_items ai ON ai.id = ap.item_id
+           JOIN archive_years ay ON ay.id = ai.year_id
+           WHERE ay.type = 'gallery'
+         )
+         SELECT * FROM ordered WHERE id = ?`
+      )
+      .get(photoId)
+  );
+
+  if (!row) return null;
+
+  const loadById = (id: number | null, position: number) => {
+    if (id == null) return null;
+    const neighbor = queryRow<{
+      id: number;
+      filename: string;
+      caption: string | null;
+      year: number;
+      album_slug: string;
+      album_title: string;
+    }>(
+      db
+        .prepare(
+          `SELECT
+             ap.id,
+             ap.filename,
+             ap.caption,
+             ay.year,
+             ai.slug AS album_slug,
+             ai.title AS album_title
+           FROM archive_photos ap
+           JOIN archive_items ai ON ai.id = ap.item_id
+           JOIN archive_years ay ON ay.id = ai.year_id
+           WHERE ap.id = ?`
+        )
+        .get(id)
+    );
+    return neighbor
+      ? mapGalleryPhotoNav({ ...neighbor, position, total: row.total })
+      : null;
+  };
+
+  return {
+    current: mapGalleryPhotoNav(row),
+    prev: loadById(row.prev_id, row.position - 1),
+    next: loadById(row.next_id, row.position + 1),
+  };
+}
+
 export const MONTH_NAMES = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
@@ -218,6 +421,11 @@ export function getNewsExcerpt(article: Pick<News, 'excerpt' | 'body'>, maxLen =
 
 export function getNewsCoverImage(article: Pick<News, 'body'>): string | null {
   return extractNewsCoverImage(article.body);
+}
+
+export function getNewsArticleBody(article: Pick<News, 'body'>): string {
+  const cover = extractNewsCoverImage(article.body);
+  return stripNewsCoverFromBody(article.body, cover);
 }
 
 export function splitPlayerName(name: string): { surname: string; firstName: string } {

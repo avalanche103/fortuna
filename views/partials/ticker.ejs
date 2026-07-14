@@ -1,6 +1,18 @@
+<%
+  const tickerText = (typeof settings !== 'undefined' && settings.banner_text)
+    ? settings.banner_text
+    : 'БАЗОВАЯ ПОДГОТОВКА ФУТБОЛИСТОВ ОТ 4 ЛЕТ';
+  const tickerPhones = (typeof settings !== 'undefined' && settings.banner_phones)
+    ? settings.banner_phones
+    : '+375-29-661-19-31';
+  const tickerHours = (typeof settings !== 'undefined' && settings.banner_hours)
+    ? settings.banner_hours
+    : 'С 11.00 ДО 19.00 ЕЖЕДНЕВНО';
+  const tickerLine = '⚽ ' + tickerText + ' ⚽ ЗАПИСЬ В КЛУБ: ' + tickerPhones + ' (' + tickerHours + ') ⚽';
+%>
 <div class="ticker">
   <div class="ticker__track">
-    <span>⚽ БАЗОВАЯ ПОДГОТОВКА ФУТБОЛИСТОВ ОТ 4 ЛЕТ ⚽ ЗАПИСЬ В КЛУБ: +375-296-61-19-31, +375-293-40-98-23 (С 11.00 ДО 19.00) ⚽</span>
-    <span>⚽ БАЗОВАЯ ПОДГОТОВКА ФУТБОЛИСТОВ ОТ 4 ЛЕТ ⚽ ЗАПИСЬ В КЛУБ: +375-296-61-19-31, +375-293-40-98-23 (С 11.00 ДО 19.00) ⚽</span>
+    <span><%= tickerLine %></span>
+    <span><%= tickerLine %></span>
   </div>
 </div>

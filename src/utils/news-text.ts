@@ -50,3 +50,22 @@ export function getNewsCoverImage(body: string | null | undefined): string | nul
   if (!src || /kk\.png|ball\.gif|no-img|logo/i.test(src)) return null;
   return src;
 }
+
+/** Убирает первое (обложное) фото из тела, если оно уже показывается отдельно. */
+export function stripNewsCoverFromBody(
+  body: string | null | undefined,
+  coverSrc: string | null | undefined
+): string {
+  if (!body) return '';
+  if (!coverSrc) return body;
+
+  const escaped = coverSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let result = body.replace(
+    new RegExp(`<p>\\s*<img[^>]*src=["']${escaped}["'][^>]*>\\s*</p>`, 'i'),
+    ''
+  );
+  if (result === body) {
+    result = body.replace(new RegExp(`<img[^>]*src=["']${escaped}["'][^>]*>`, 'i'), '');
+  }
+  return result.replace(/<p>\s*<\/p>/gi, '').trim();
+}

@@ -2,7 +2,7 @@ import express from 'express';
 import session from 'express-session';
 import path from 'path';
 import { runMigrations } from './db';
-import { splitPlayerName } from './services/content';
+import { getSettings, splitPlayerName } from './services/content';
 import publicRoutes from './routes/public';
 import adminRoutes from './routes/admin';
 
@@ -28,6 +28,7 @@ app.use(
 app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.splitPlayerName = splitPlayerName;
+  res.locals.settings = getSettings();
   next();
 });
 

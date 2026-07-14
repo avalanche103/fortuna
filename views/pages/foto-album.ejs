@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= album.title %></h1></div></div>
+    <div class="container section" style="padding-top:0;">
+      <% if (!photos.length) { %>
+        <p>В этом альбоме пока нет фото.</p>
+      <% } else { %>
+        <div class="photo-grid" id="photo-grid">
+          <% photos.forEach(function(photo) { %>
+            <a href="<%= photo.filename %>" class="photo-grid__item" data-photo-id="<%= photo.id %>">
+              <img src="<%= photo.filename %>" alt="<%= photo.caption || album.title %>" loading="lazy">
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+      <p class="news-article__footer">
+        <a href="/foto/<%= year %>" class="btn btn--outline">← Альбомы <%= year %></a>
+      </p>
+    </div>
+  </main>
+
+  <div class="photo-lightbox" id="photo-lightbox" hidden>
+    <div class="photo-lightbox__backdrop" data-lightbox-close></div>
+    <button type="button" class="photo-lightbox__close" data-lightbox-close aria-label="Закрыть">×</button>
+    <button type="button" class="photo-lightbox__nav photo-lightbox__nav--prev" id="lightbox-prev" aria-label="Предыдущее фото">‹</button>
+    <button type="button" class="photo-lightbox__nav photo-lightbox__nav--next" id="lightbox-next" aria-label="Следующее фото">›</button>
+    <div class="photo-lightbox__dialog">
+      <img class="photo-lightbox__image" id="lightbox-image" alt="">
+      <div class="photo-lightbox__meta">
+        <div class="photo-lightbox__album" id="lightbox-album"></div>
+        <div class="photo-lightbox__counter" id="lightbox-counter"></div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+  <script src="/js/photo-lightbox.js"></script>
+</body>
+</html>

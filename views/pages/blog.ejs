@@ -15,27 +15,72 @@
   <main>
     <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
     <div class="container section" style="padding-top:0;">
-      <div class="news-grid">
-        <% news.forEach(function(item) { %>
-          <article class="news-item">
-            <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
-            <div>
-              <h3 class="news-item__title">
-                <a href="/blog/<%= item.category %>/<%= item.slug %>"><%= item.title %></a>
-              </h3>
-              <% const excerpt = getNewsExcerpt(item); %>
-              <% if (excerpt) { %><p class="news-item__excerpt"><%= excerpt %></p><% } %>
-            </div>
-          </article>
-        <% }); %>
-      </div>
-      <% if (pages > 1) { %>
-        <div class="pagination">
-          <% for (let i = 1; i <= pages; i++) { %>
-            <% if (i === page) { %><span class="current"><%= i %></span>
-            <% } else { %><a href="/blog?page=<%= i %>"><%= i %></a><% } %>
-          <% } %>
+      <%
+        function blogHref(targetPage, targetYear) {
+          const params = [];
+          if (targetYear) params.push('year=' + targetYear);
+          if (targetPage > 1) params.push('page=' + targetPage);
+          return params.length ? '/blog?' + params.join('&') : '/blog';
+        }
+        // В режиме года записи идут по возрастанию даты: «Раньше» = к началу года (page-1), «Позже» = дальше по году (page+1)
+        const olderPage = year ? page - 1 : page + 1;
+        const newerPage = year ? page + 1 : page - 1;
+        const canGoOlder = year ? page > 1 : page < pages;
+        const canGoNewer = year ? page < pages : page > 1;
+      %>
+      <% if (news.length === 0) { %>
+        <p>Новостей пока нет.</p>
+      <% } else { %>
+        <div class="news-grid news-grid--blog">
+          <% news.forEach(function(item) { %>
+            <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
+            <% const itemImg = getNewsCoverImage(item); %>
+            <% const excerpt = getNewsExcerpt(item, 180); %>
+            <article class="news-item news-item--compact">
+              <a href="<%= itemUrl %>" class="news-item__thumb-link">
+                <% if (itemImg) { %>
+                  <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
+                <% } else { %>
+                  <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+                <% } %>
+              </a>
+              <div class="news-item__body">
+                <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
+                <h3 class="news-item__title">
+                  <a href="<%= itemUrl %>"><%= item.title %></a>
+                </h3>
+                <p class="news-item__excerpt"><%= excerpt || '' %></p>
+              </div>
+            </article>
+          <% }); %>
         </div>
+      <% } %>
+      <% if (pages > 1) { %>
+        <nav class="pagination pagination--prev-next" aria-label="Навигация по новостям">
+          <% if (canGoNewer) { %>
+            <a class="pagination__link" href="<%= blogHref(newerPage, year) %>">← Позже</a>
+          <% } else { %>
+            <span class="pagination__link is-disabled">← Позже</span>
+          <% } %>
+          <span class="pagination__status"><%= page %> / <%= pages %></span>
+          <% if (canGoOlder) { %>
+            <a class="pagination__link" href="<%= blogHref(olderPage, year) %>">Раньше →</a>
+          <% } else { %>
+            <span class="pagination__link is-disabled">Раньше →</span>
+          <% } %>
+        </nav>
+      <% } %>
+
+      <% if (years && years.length) { %>
+        <nav class="news-years" aria-label="Новости по годам">
+          <h2 class="news-years__title">По годам</h2>
+          <div class="news-years__list">
+            <a href="/blog" class="news-years__item<%= !year ? ' is-active' : '' %>">Все</a>
+            <% years.forEach(function(y) { %>
+              <a href="/blog?year=<%= y %>" class="news-years__item<%= year === y ? ' is-active' : '' %>"><%= y %></a>
+            <% }); %>
+          </div>
+        </nav>
       <% } %>
     </div>
   </main>

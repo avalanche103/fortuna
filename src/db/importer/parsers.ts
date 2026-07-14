@@ -437,9 +437,19 @@ export function parseGalleryYearItems(html: string, year: number): YearLink[] {
     const slug = slugFromUrl(url);
     if (!slug || slug === String(year) || seen.has(slug)) return;
     seen.add(slug);
+
+    let title = $(a).text().replace(/\s+/g, ' ').trim();
+    if (!title) {
+      title =
+        $(a).find('img').attr('alt') ||
+        $(a).find('img').attr('title') ||
+        $(a).closest('li, .item, article, .c-goods__item').find('.c-goods__title, h2, h3, .title').first().text().replace(/\s+/g, ' ').trim() ||
+        slug;
+    }
+
     items.push({
       year,
-      title: $(a).text().trim(),
+      title,
       slug,
       url,
     });
@@ -451,10 +461,23 @@ export function parseGalleryYearItems(html: string, year: number): YearLink[] {
 export function parseGalleryPhotos(html: string): string[] {
   const $ = cheerio.load(html);
   const photos: string[] = [];
-  $('#mg-gallery img, .mg-gallery-list img').each((_, img) => {
-    const src = absUrl($(img).attr('src') ?? '');
-    if (src) photos.push(src);
+  const seen = new Set<string>();
+
+  const add = (raw: string | undefined) => {
+    const src = absUrl(raw ?? '');
+    if (!src || /kk\.png|ball\.gif|logo|no-img/i.test(src)) return;
+    const key = src.replace('://www.', '://').toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    photos.push(src);
+  };
+
+  $('#mg-gallery a.pic, .mg-gallery-list a.pic').each((_, a) => {
+    add($(a).attr('href') || $(a).find('img').attr('src'));
   });
+  if (!photos.length) {
+    $('#mg-gallery img, .mg-gallery-list img').each((_, img) => add($(img).attr('src')));
+  }
   return photos;
 }
 

@@ -62,6 +62,26 @@ const uploadVizitkaCoachPhoto = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const newsUploadDir = path.join(uploadDir, 'news');
+const newsStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    fs.mkdirSync(newsUploadDir, { recursive: true });
+    cb(null, newsUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    cb(null, unique + path.extname(file.originalname).toLowerCase());
+  },
+});
+const uploadNewsImage = multer({
+  storage: newsStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|gif|webp|jpg)$/i.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Только изображения (JPEG, PNG, GIF, WebP)'));
+  },
+});
+
 const router = Router();
 
 router.get('/login', (req: Request, res: Response) => {
@@ -113,6 +133,20 @@ router.get('/news/:id/edit', requireAdmin, (req, res) => {
     return;
   }
   res.render('admin/news-form', { title: 'Редактировать новость', article });
+});
+
+router.post('/news/upload-image', requireAdmin, (req, res) => {
+  uploadNewsImage.single('image')(req, res, (err) => {
+    if (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Ошибка загрузки' });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ error: 'Файл не получен' });
+      return;
+    }
+    res.json({ url: `/uploads/news/${req.file.filename}` });
+  });
 });
 
 router.post('/news', requireAdmin, (req, res) => {

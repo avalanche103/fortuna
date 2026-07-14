@@ -38,7 +38,7 @@
               <% news.slice(1).forEach(function(item) { %>
                 <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
                 <% const itemImg = getNewsCoverImage(item); %>
-                <% const excerpt = getNewsExcerpt(item, 120); %>
+                <% const excerpt = getNewsExcerpt(item, 180); %>
                 <article class="news-item news-item--compact">
                   <a href="<%= itemUrl %>" class="news-item__thumb-link">
                     <% if (itemImg) { %>
@@ -52,9 +52,7 @@
                     <h3 class="news-item__title">
                       <a href="<%= itemUrl %>"><%= item.title %></a>
                     </h3>
-                    <% if (excerpt) { %>
-                      <p class="news-item__excerpt"><%= excerpt %></p>
-                    <% } %>
+                    <p class="news-item__excerpt"><%= excerpt || '' %></p>
                   </div>
                 </article>
               <% }); %>
@@ -63,7 +61,21 @@
         <% } %>
       </div>
 
-      <aside>
+      <aside class="home-aside">
+        <div class="widget widget--recruitment">
+          <h3 class="widget__title"><%= recruitment.title %></h3>
+          <% if (recruitment.subtitle) { %>
+            <p class="widget-recruitment__subtitle"><%= recruitment.subtitle %></p>
+          <% } %>
+          <% if (recruitment.teaser) { %>
+            <div class="widget-recruitment__body"><%= recruitment.teaser %></div>
+          <% } %>
+          <a href="/nabor" class="btn btn--primary widget-recruitment__btn">Почему именно к нам?</a>
+          <% if (recruitment.phones) { %>
+            <div class="widget-recruitment__phone"><%= recruitment.phones %></div>
+          <% } %>
+        </div>
+
         <div class="widget">
           <h3 class="widget__title">Именинники · <%= monthName %></h3>
           <% if (birthdays.length === 0) { %>
@@ -145,14 +157,5 @@
         </a>
       <% }); %>
     </div>
-  </div>
-</section>
-
-<section class="recruitment">
-  <div class="container">
-    <h2><%= settings.recruitment_title || 'Сделайте правильный выбор!' %></h2>
-    <p class="recruitment__subtitle"><%= settings.recruitment_subtitle || '' %></p>
-    <div class="recruitment__body"><%= settings.recruitment_body || '' %></div>
-    <div class="recruitment__phone"><%= settings.banner_phones || '+375-29-661-19-31' %></div>
   </div>
 </section>

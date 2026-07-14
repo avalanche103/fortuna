@@ -5,6 +5,9 @@ import {
   getGruppyGroups,
   getGruppyPlayersByGroup,
   getArchiveItems,
+  getArchiveItem,
+  getArchivePhotos,
+  getGalleryPhotoNav,
   getArchiveYear,
   getArchiveYears,
   getBirthdaysThisMonth,
@@ -16,8 +19,10 @@ import {
   getLatestNews,
   getNewsBySlug,
   getNewsList,
+  getNewsYears,
   getScheduleEntries,
   getSettings,
+  getRecruitmentContent,
   getVideos,
   getVizitkaSections,
   getVizitkaCoaches,
@@ -25,6 +30,7 @@ import {
   formatDateRu,
   getNewsExcerpt,
   getNewsCoverImage,
+  getNewsArticleBody,
   youtubeEmbedUrl,
   youtubeThumb,
 } from '../services/content';
@@ -38,12 +44,13 @@ router.get('/', (req: Request, res: Response) => {
 
   res.render('pages/home', {
     title: 'Футбольный клуб Фортуна',
-    news: getLatestNews(8),
+    news: getLatestNews(9),
     birthdays,
     monthName,
     videos: getVideos(),
     graduates: getFeaturedGraduates(12),
     settings,
+    recruitment: getRecruitmentContent(settings),
     formatDateRu,
     getNewsExcerpt,
     getNewsCoverImage,
@@ -51,17 +58,33 @@ router.get('/', (req: Request, res: Response) => {
   });
 });
 
+router.get('/nabor', (_req: Request, res: Response) => {
+  const settings = getSettings();
+  const recruitment = getRecruitmentContent(settings);
+  res.render('pages/nabor', {
+    title: 'Набор',
+    settings,
+    recruitment,
+  });
+});
+
 router.get('/blog', (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
-  const { items, pages } = getNewsList(page);
+  const yearRaw = parseInt(String(req.query.year ?? ''), 10);
+  const year = Number.isFinite(yearRaw) && yearRaw > 1900 ? yearRaw : null;
+  const { items, pages } = getNewsList(page, 18, year);
+  const years = getNewsYears();
 
   res.render('pages/blog', {
-    title: 'Новости',
+    title: year ? `Новости · ${year}` : 'Новости',
     news: items,
     page,
     pages,
+    year,
+    years,
     formatDateRu,
     getNewsExcerpt,
+    getNewsCoverImage,
   });
 });
 
@@ -75,6 +98,8 @@ router.get('/blog/:category/:slug', (req: Request, res: Response) => {
   res.render('pages/news-detail', {
     title: article.title,
     article,
+    coverImage: getNewsCoverImage(article),
+    bodyHtml: getNewsArticleBody(article),
     formatDateRu,
   });
 });
@@ -89,6 +114,8 @@ router.get('/blog/:slug', (req: Request, res: Response) => {
   res.render('pages/news-detail', {
     title: article.title,
     article,
+    coverImage: getNewsCoverImage(article),
+    bodyHtml: getNewsArticleBody(article),
     formatDateRu,
   });
 });
@@ -163,23 +190,28 @@ router.get('/vospitanniki/:slug', (req: Request, res: Response) => {
   });
 });
 
-router.get('/arhiv', (_req: Request, res: Response) => {
-  res.render('pages/arhiv', {
-    title: 'Архив',
-    archiveYears: getArchiveYears('archive'),
-    galleryYears: getArchiveYears('gallery'),
-  });
-});
-
-router.get('/arhiv/fotogalereya', (_req: Request, res: Response) => {
-  res.render('pages/fotogalereya', {
-    title: 'Фотогалерея',
+router.get('/foto', (_req: Request, res: Response) => {
+  res.render('pages/foto', {
+    title: 'Фото',
     years: getArchiveYears('gallery'),
-    inArchive: true,
   });
 });
 
-router.get('/arhiv/fotogalereya/:year', (req: Request, res: Response) => {
+router.get('/api/foto/photo/:id', (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: 'Invalid id' });
+    return;
+  }
+  const nav = getGalleryPhotoNav(id);
+  if (!nav) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  res.json(nav);
+});
+
+router.get('/foto/:year', (req: Request, res: Response) => {
   const year = parseInt(req.params.year, 10);
   const archiveYear = getArchiveYear(year, 'gallery');
   if (!archiveYear) {
@@ -187,36 +219,62 @@ router.get('/arhiv/fotogalereya/:year', (req: Request, res: Response) => {
     return;
   }
 
-  res.render('pages/fotogalereya-year', {
-    title: `Фотогалерея ${year}`,
+  res.render('pages/foto-year', {
+    title: `Фото · ${year}`,
     year,
     items: getArchiveItems(archiveYear.id),
-    inArchive: true,
   });
 });
 
-router.get('/arhiv/:year', (req: Request, res: Response) => {
+router.get('/foto/:year/:slug', (req: Request, res: Response) => {
   const year = parseInt(req.params.year, 10);
-  const archiveYear = getArchiveYear(year, 'archive');
+  const archiveYear = getArchiveYear(year, 'gallery');
   if (!archiveYear) {
     res.status(404).render('pages/404', { title: 'Страница не найдена' });
     return;
   }
 
-  res.render('pages/arhiv-year', {
-    title: `Архив ${year}`,
+  const album = getArchiveItem(archiveYear.id, req.params.slug);
+  if (!album) {
+    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    return;
+  }
+
+  res.render('pages/foto-album', {
+    title: album.title,
     year,
-    items: getArchiveItems(archiveYear.id),
+    album,
+    photos: getArchivePhotos(album.id),
   });
 });
 
-// Редиректы со старых путей фотогалереи
+// Редиректы со старых путей
+router.get('/arhiv', (_req: Request, res: Response) => {
+  res.redirect(301, '/foto');
+});
+
+router.get('/arhiv/fotogalereya', (_req: Request, res: Response) => {
+  res.redirect(301, '/foto');
+});
+
+router.get('/arhiv/fotogalereya/:year', (req: Request, res: Response) => {
+  res.redirect(301, `/foto/${req.params.year}`);
+});
+
+router.get('/arhiv/:year', (req: Request, res: Response) => {
+  res.redirect(301, `/foto/${req.params.year}`);
+});
+
 router.get('/fotogalereya', (_req: Request, res: Response) => {
-  res.redirect(301, '/arhiv/fotogalereya');
+  res.redirect(301, '/foto');
 });
 
 router.get('/fotogalereya/:year', (req: Request, res: Response) => {
-  res.redirect(301, `/arhiv/fotogalereya/${req.params.year}`);
+  res.redirect(301, `/foto/${req.params.year}`);
+});
+
+router.get('/fotogalereya/:year/:slug', (req: Request, res: Response) => {
+  res.redirect(301, `/foto/${req.params.year}/${req.params.slug}`);
 });
 
 export default router;

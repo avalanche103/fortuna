@@ -11,7 +11,7 @@
     <%- include('sidebar') %>
     <div class="admin-main">
       <h1><%= title %></h1>
-      <form class="form-card" method="post" action="<%= article ? '/admin/news/' + article.id : '/admin/news' %>">
+      <form class="form-card form-card--wide" method="post" action="<%= article ? '/admin/news/' + article.id : '/admin/news' %>" id="news-form">
         <div class="form-group">
           <label>Заголовок</label>
           <input type="text" name="title" value="<%= article ? article.title : '' %>" required>
@@ -25,8 +25,19 @@
           <textarea name="excerpt"><%= article ? (article.excerpt || '') : '' %></textarea>
         </div>
         <div class="form-group">
+          <label>Картинки</label>
+          <div class="image-dropzone" id="image-dropzone">
+            <input type="file" id="image-file-input" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+            <p class="image-dropzone__title">Перетащите изображения сюда</p>
+            <p class="image-dropzone__hint">или <button type="button" class="image-dropzone__browse" id="image-browse-btn">выберите файлы</button></p>
+            <p class="image-dropzone__status" id="image-dropzone-status" hidden></p>
+          </div>
+          <div class="image-dropzone__previews" id="image-previews"></div>
+        </div>
+        <div class="form-group">
           <label>Текст</label>
-          <textarea name="body" style="min-height:240px;" required><%= article ? article.body : '' %></textarea>
+          <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? article.body : '' %></textarea>
+          <p class="form-hint">Можно перетащить картинку прямо в поле текста — она вставится в место курсора.</p>
         </div>
         <div class="form-group">
           <label>Дата публикации</label>
@@ -43,5 +54,6 @@
       </form>
     </div>
   </div>
+  <script src="/js/admin-news-images.js"></script>
 </body>
 </html>

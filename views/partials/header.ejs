@@ -17,7 +17,7 @@
       <a href="/gruppy" class="<%= currentPath.startsWith('/gruppy') ? 'active' : '' %>">Группы</a>
       <a href="/raspisanie" class="<%= currentPath === '/raspisanie' ? 'active' : '' %>">Расписание</a>
       <a href="/vospitanniki" class="<%= currentPath.startsWith('/vospitanniki') ? 'active' : '' %>">Воспитанники</a>
-      <a href="/arhiv" class="<%= currentPath.startsWith('/arhiv') ? 'active' : '' %>">Архив</a>
+      <a href="/foto" class="<%= currentPath.startsWith('/foto') || currentPath.startsWith('/arhiv') || currentPath.startsWith('/fotogalereya') ? 'active' : '' %>">Фото</a>
     </nav>
   </div>
 </header>

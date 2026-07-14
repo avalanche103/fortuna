@@ -13,6 +13,11 @@ if (!fs.existsSync(DATA_DIR)) {
 
 export const db = new DatabaseSync(DB_PATH);
 
+// Concurrent readers (site) + writers (import/download) coexist better in WAL.
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA busy_timeout = 5000');
+db.exec('PRAGMA synchronous = NORMAL');
+
 export function runMigrations(): void {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   db.exec(schema);

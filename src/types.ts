@@ -79,6 +79,14 @@ export interface ArchiveItem {
   sort_order: number;
 }
 
+export interface ArchivePhoto {
+  id: number;
+  item_id: number;
+  filename: string;
+  caption: string | null;
+  sort_order: number;
+}
+
 export interface VizitkaSection {
   id: number;
   title: string;

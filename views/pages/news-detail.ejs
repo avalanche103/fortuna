@@ -11,11 +11,27 @@
   <%- include('../partials/ticker') %>
   <%- include('../partials/header') %>
   <main>
-    <div class="page-header"><div class="container"><h1><%= article.title %></h1></div></div>
+    <div class="page-header page-header--slim">
+      <div class="container">
+        <a href="/blog" class="page-header__back">← Все новости</a>
+      </div>
+    </div>
     <div class="container section" style="padding-top:0;">
-      <p class="article__meta"><%= formatDateRu(article.published_at) %></p>
-      <div class="article__body"><%- article.body %></div>
-      <p style="margin-top:2rem;"><a href="/blog" class="btn btn--outline">← Все новости</a></p>
+      <article class="news-article">
+        <% if (coverImage) { %>
+          <img class="news-article__cover" src="<%= coverImage %>" alt="<%= article.title %>" loading="eager">
+        <% } else { %>
+          <div class="news-article__cover news-article__cover--placeholder"></div>
+        <% } %>
+        <div class="news-article__body">
+          <div class="news-article__date"><%= formatDateRu(article.published_at) %></div>
+          <h1 class="news-article__title"><%= article.title %></h1>
+          <div class="news-article__content"><%- bodyHtml %></div>
+        </div>
+      </article>
+      <p class="news-article__footer">
+        <a href="/blog" class="btn btn--outline">← Все новости</a>
+      </p>
     </div>
   </main>
   <%- include('../partials/footer') %>

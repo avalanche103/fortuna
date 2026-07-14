@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header">
+      <div class="container"><h1><%= recruitment.title %></h1></div>
+    </div>
+    <div class="container section" style="padding-top:0;">
+      <article class="nabor-page">
+        <% if (recruitment.subtitle) { %>
+          <p class="nabor-page__subtitle"><%= recruitment.subtitle %></p>
+        <% } %>
+
+        <% if (recruitment.teaser) { %>
+          <div class="nabor-page__teaser"><%= recruitment.teaser %></div>
+        <% } %>
+
+        <% if (recruitment.advantages) { %>
+          <h2 class="nabor-page__pros-title">Почему именно к нам?</h2>
+          <div class="nabor-page__advantages"><%= recruitment.advantages %></div>
+        <% } %>
+
+        <div class="nabor-page__contacts">
+          <% if (recruitment.hours) { %>
+            <p class="nabor-page__hours"><%= recruitment.hours %></p>
+          <% } %>
+          <% if (recruitment.phones) { %>
+            <p class="nabor-page__phones"><%= recruitment.phones %></p>
+          <% } %>
+        </div>
+
+        <p class="news-article__footer" style="margin-top:2rem;">
+          <a href="/" class="btn btn--outline">← На главную</a>
+        </p>
+      </article>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>
