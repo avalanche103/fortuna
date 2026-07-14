@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <main class="admin-main">
+      <div class="admin-header">
+        <div>
+          <h1><%= title %></h1>
+          <% if (month) { %><p class="admin-subtitle"><%= monthName %> <%= month.year %></p><% } %>
+        </div>
+        <div class="btn-group">
+          <a class="btn btn--outline" href="/admin/schedule/locations">Площадки</a>
+          <% if (month) { %>
+            <a class="btn btn--secondary" href="/raspisanie?year=<%= month.year %>&month=<%= month.month %>" target="_blank">Предпросмотр</a>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (saved) { %><div class="alert alert--success">Расписание сохранено.</div><% } %>
+
+      <section class="schedule-admin-tools">
+        <form action="/admin/schedule" method="get" class="schedule-admin-inline">
+          <label for="schedule-month">Открыть месяц</label>
+          <select id="schedule-month" onchange="if(this.value) location.href=this.value">
+            <option value="">Выберите месяц</option>
+            <% months.forEach(function(item) { %>
+              <option value="/admin/schedule?year=<%= item.year %>&month=<%= item.month %>" <%= month && item.id === month.id ? 'selected' : '' %>>
+                <%= MONTH_NAMES[item.month - 1] %> <%= item.year %>
+              </option>
+            <% }); %>
+          </select>
+        </form>
+
+        <form action="/admin/schedule/month" method="post" class="schedule-admin-create">
+          <strong>Создать месяц</strong>
+          <input type="number" name="year" min="2000" max="2100" value="<%= new Date().getFullYear() %>" required aria-label="Год">
+          <select name="month" required aria-label="Месяц">
+            <% MONTH_NAMES.forEach(function(name, index) { %>
+              <option value="<%= index + 1 %>" <%= index === new Date().getMonth() ? 'selected' : '' %>><%= name %></option>
+            <% }); %>
+          </select>
+          <select name="copy_from" aria-label="Скопировать расписание">
+            <option value="">Без копирования</option>
+            <% months.forEach(function(item) { %>
+              <option value="<%= item.id %>">Копировать: <%= MONTH_NAMES[item.month - 1] %> <%= item.year %></option>
+            <% }); %>
+          </select>
+          <button class="btn btn--primary" type="submit">Создать</button>
+        </form>
+      </section>
+
+      <% if (!month) { %>
+        <div class="form-card"><p>Создайте первый месяц расписания.</p></div>
+      <% } else { %>
+        <%
+          const entryBySlot = new Map();
+          entries.forEach(function(entry) { entryBySlot.set(entry.day + ':' + entry.group_id, entry); });
+        %>
+        <form action="/admin/schedule/<%= month.year %>/<%= month.month %>" method="post" id="schedule-form">
+          <div class="schedule-admin-scroll">
+            <table class="schedule-admin-grid">
+              <thead>
+                <tr>
+                  <th class="schedule-admin-day">Дата</th>
+                  <% groups.forEach(function(group) { %><th><%= group.name %></th><% }); %>
+                </tr>
+              </thead>
+              <tbody>
+                <% for (let day = 1; day <= daysInMonth; day += 1) {
+                  const date = new Date(Date.UTC(month.year, month.month - 1, day));
+                  const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date);
+                %>
+                  <tr>
+                    <th class="schedule-admin-day"><span><%= day %></span><small><%= weekday %></small></th>
+                    <% groups.forEach(function(group) {
+                      const slot = entryBySlot.get(day + ':' + group.id);
+                      const start = slot && slot.time_start ? slot.time_start.replace('.', ':') : '';
+                      const finish = slot && slot.time_end ? slot.time_end.replace('.', ':') : '';
+                      const location = slot && slot.location_id ? locations.find(function(item) { return item.id === slot.location_id; }) : null;
+                    %>
+                      <td data-day="<%= day %>" data-group="<%= group.id %>">
+                        <details class="schedule-slot <%= slot ? 'has-value' : '' %>">
+                          <summary>
+                            <span class="schedule-slot__dot" style="--slot-color:<%= location ? location.color : '#cbd5e1' %>"></span>
+                            <span class="schedule-slot__summary"><%= start ? start + (finish ? '–' + finish : '') : (slot ? 'Настроено' : '—') %></span>
+                          </summary>
+                          <div class="schedule-slot__editor">
+                            <div class="schedule-slot__times">
+                              <input type="time" name="slots[d<%= day %>][g<%= group.id %>][time_start]" value="<%= start %>" aria-label="Начало">
+                              <span>—</span>
+                              <input type="time" name="slots[d<%= day %>][g<%= group.id %>][time_end]" value="<%= finish %>" aria-label="Окончание">
+                            </div>
+                            <select name="slots[d<%= day %>][g<%= group.id %>][location_id]" aria-label="Площадка">
+                              <option value="">Без площадки</option>
+                              <% locations.forEach(function(item) { %>
+                                <option value="<%= item.id %>" data-color="<%= item.color %>" <%= slot && slot.location_id === item.id ? 'selected' : '' %>>
+                                  <%= item.name %><%= item.is_active ? '' : ' (неактивна)' %>
+                                </option>
+                              <% }); %>
+                            </select>
+                            <input type="text" name="slots[d<%= day %>][g<%= group.id %>][note]" value="<%= slot && slot.note ? slot.note : '' %>" placeholder="Примечание" maxlength="200">
+                            <% if (day > 1) { %><button type="button" class="schedule-slot__copy">Скопировать предыдущий день</button><% } %>
+                            <button type="button" class="schedule-slot__clear">Очистить</button>
+                          </div>
+                        </details>
+                      </td>
+                    <% }); %>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+          <div class="schedule-savebar">
+            <span id="schedule-dirty">Изменений нет</span>
+            <button class="btn btn--primary" type="submit">Сохранить расписание</button>
+          </div>
+        </form>
+      <% } %>
+    </main>
+  </div>
+  <script src="/js/admin-schedule.js"></script>
+</body>
+</html>

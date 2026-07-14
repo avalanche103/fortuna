@@ -11,16 +11,45 @@
   <%- include('../partials/ticker') %>
   <%- include('../partials/header') %>
   <main>
-    <div class="page-header"><div class="container"><h1>Расписание · <%= monthName %></h1></div></div>
-    <div class="container section" style="padding-top:0;">
+    <div class="page-header"><div class="container">
+      <h1>Расписание · <%= monthName %> <%= displayYear %></h1>
+    </div></div>
+    <div class="container section schedule-page">
+      <nav class="schedule-months" aria-label="Выбор месяца">
+        <% months.forEach(function(item) { %>
+          <a class="<%= month && item.id === month.id ? 'active' : '' %>"
+             href="/raspisanie?year=<%= item.year %>&month=<%= item.month %><%= selectedGroup ? '&group=' + selectedGroup.slug : '' %>">
+            <%= MONTH_NAMES[item.month - 1] %> <%= item.year %>
+          </a>
+        <% }); %>
+      </nav>
+
+      <div class="schedule-groups" aria-label="Фильтр по группе">
+        <a class="schedule-groups__all <%= selectedGroup ? '' : 'active' %>" href="/raspisanie?year=<%= displayYear %>&month=<%= displayMonth %>">Все группы</a>
+        <% allGroups.forEach(function(group) { %>
+          <a class="<%= selectedGroup && selectedGroup.id === group.id ? 'active' : '' %>"
+             href="/raspisanie?year=<%= displayYear %>&month=<%= displayMonth %>&group=<%= group.slug %>"><%= group.name %></a>
+        <% }); %>
+      </div>
+
+      <% if (!selectedGroup) { %>
+        <div class="schedule-empty schedule-empty--mobile-only">
+          <h2>Выберите группу</h2>
+          <p>Чтобы посмотреть расписание, выберите группу выше.</p>
+        </div>
+      <% } %>
+
       <% if (!month || entries.length === 0) { %>
-        <p>Расписание на текущий месяц пока не опубликовано.</p>
+        <div class="schedule-empty <%= selectedGroup ? '' : 'schedule-empty--desktop-only' %>">
+          <h2>Расписание пока не опубликовано</h2>
+          <p><%= selectedGroup ? 'Для выбранной группы в этом месяце занятий нет.' : 'Выберите другой доступный месяц или загляните позже.' %></p>
+        </div>
       <% } else { %>
-        <div style="overflow-x:auto;">
+        <div class="schedule-table-wrap <%= selectedGroup ? 'has-group-filter' : '' %> <%= selectedGroup ? '' : 'schedule-table-wrap--desktop-only' %>">
           <table class="schedule-table">
             <thead>
               <tr>
-                <th>День</th>
+                <th>Дата</th>
                 <% groups.forEach(function(g) { %><th><%= g.name %></th><% }); %>
               </tr>
             </thead>
@@ -29,17 +58,29 @@
                 const days = [...new Set(entries.map(e => e.day))].sort((a,b) => a-b);
                 days.forEach(function(day) {
                   const dayEntries = entries.filter(e => e.day === day);
-                  const weekday = dayEntries[0]?.weekday;
+                  const date = new Date(Date.UTC(displayYear, displayMonth - 1, day));
+                  const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date);
               %>
                 <tr>
-                  <td class="day-cell"><%= day %> <% if (weekday) { %>(<%= weekday %>)<% } %></td>
+                  <td class="day-cell"><strong><%= day %></strong><small><%= weekday %></small></td>
                   <% groups.forEach(function(g) {
                     const slot = dayEntries.find(e => e.group_id === g.id);
                   %>
                     <td>
-                      <% if (slot && slot.time_start) { %>
-                        <%= slot.time_start %><% if (slot.time_end) { %>–<%= slot.time_end %><% } %>
-                        <% if (slot.note) { %><br><small><%= slot.note %></small><% } %>
+                      <% if (slot) { %>
+                        <article class="schedule-session">
+                          <% if (slot.time_start) { %>
+                            <strong class="schedule-session__time"><%= slot.time_start %><% if (slot.time_end) { %>–<%= slot.time_end %><% } %></strong>
+                          <% } %>
+                          <% if (slot.location_name || slot.location) { %>
+                            <span class="schedule-location" title="<%= slot.location_address || '' %>">
+                              <span class="schedule-location__dot" style="--location-color:<%= slot.location_color || '#6b7280' %>"></span>
+                              <span><%= slot.location_name || slot.location %></span>
+                            </span>
+                            <% if (slot.location_address) { %><small class="schedule-session__address"><%= slot.location_address %></small><% } %>
+                          <% } %>
+                          <% if (slot.note) { %><small class="schedule-session__note"><%= slot.note %></small><% } %>
+                        </article>
                       <% } %>
                     </td>
                   <% }); %>
@@ -48,13 +89,44 @@
             </tbody>
           </table>
         </div>
+
+        <% if (selectedGroup) { %>
+          <div class="schedule-mobile-list">
+            <% entries.forEach(function(slot) {
+              const date = new Date(Date.UTC(displayYear, displayMonth - 1, slot.day));
+              const dateLabel = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', weekday: 'short', timeZone: 'UTC' }).format(date);
+            %>
+              <article class="schedule-mobile-card">
+                <div class="schedule-mobile-card__date"><%= dateLabel %></div>
+                <div>
+                  <% if (slot.time_start) { %><strong><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong><% } %>
+                  <% if (slot.location_name || slot.location) { %>
+                    <span class="schedule-location">
+                      <span class="schedule-location__dot" style="--location-color:<%= slot.location_color || '#6b7280' %>"></span>
+                      <span><%= slot.location_name || slot.location %></span>
+                    </span>
+                    <% if (slot.location_address) { %><small><%= slot.location_address %></small><% } %>
+                  <% } %>
+                  <% if (slot.note) { %><small><%= slot.note %></small><% } %>
+                </div>
+              </article>
+            <% }); %>
+          </div>
+        <% } %>
       <% } %>
-      <ul class="schedule-note">
-        <li>— Стадион «Зелёный Луг» (ул. Гамарника, 9/1)</li>
-        <li>— Спорткомплекс РЦОП по гандболу (ул. Филимонова, 55/2)</li>
-        <li>— Футбольный манеж (пр. Победителей, 20/2)</li>
-        <li>— Спорткомплекс «Ампласт» (ул. Седых, 66)</li>
-      </ul>
+      <% if (locations.length) { %>
+        <section class="schedule-legend">
+          <h2>Места проведения</h2>
+          <ul>
+            <% locations.forEach(function(location) { %>
+              <li>
+                <span class="schedule-location__dot" style="--location-color:<%= location.color %>"></span>
+                <span><strong><%= location.name %></strong><%= location.address ? ' — ' + location.address : '' %></span>
+              </li>
+            <% }); %>
+          </ul>
+        </section>
+      <% } %>
     </div>
   </main>
   <%- include('../partials/footer') %>

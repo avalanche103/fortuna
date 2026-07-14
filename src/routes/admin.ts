@@ -6,7 +6,25 @@ import slugify from 'slugify';
 import db from '../db';
 import { queryRows } from '../db/helpers';
 import { requireAdmin, verifyAdmin, getAdminId } from '../middleware/auth';
-import { getGroups, getRosterGroups, getSettings, getVizitkaCoaches, getVizitkaSections } from '../services/content';
+import {
+  copyScheduleMonth,
+  createScheduleLocation,
+  createScheduleMonth,
+  getGroups,
+  getRosterGroups,
+  getScheduleEntries,
+  getScheduleLocation,
+  getScheduleLocations,
+  getScheduleMonth,
+  getScheduleMonths,
+  getSettings,
+  getVizitkaCoaches,
+  getVizitkaSections,
+  MONTH_NAMES,
+  saveScheduleEntries,
+  updateScheduleLocation,
+} from '../services/content';
+import type { ScheduleSlotInput } from '../services/content';
 import { resolveYoutubeTitle } from '../utils/youtube';
 
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
@@ -111,6 +129,7 @@ router.get('/', requireAdmin, (_req: Request, res: Response) => {
     news: (db.prepare('SELECT COUNT(*) as c FROM news').get() as { c: number }).c,
     players: (db.prepare('SELECT COUNT(*) as c FROM players').get() as { c: number }).c,
     groups: (db.prepare('SELECT COUNT(*) as c FROM groups').get() as { c: number }).c,
+    schedule: (db.prepare('SELECT COUNT(*) as c FROM schedule_months').get() as { c: number }).c,
     videos: (db.prepare('SELECT COUNT(*) as c FROM videos').get() as { c: number }).c,
   };
   res.render('admin/dashboard', { title: 'Админ-панель', stats });
@@ -195,6 +214,173 @@ router.post('/groups/:id', requireAdmin, uploadGroupPhoto.single('photo'), (req,
   db.prepare('UPDATE groups SET photo = ? WHERE id = ?').run(photo, req.params.id);
   res.redirect('/admin/groups');
 });
+
+// --- Schedule ---
+router.get('/schedule', requireAdmin, (req, res) => {
+  const months = getScheduleMonths();
+  const requestedYear = parseInt(String(req.query.year ?? ''), 10);
+  const requestedMonth = parseInt(String(req.query.month ?? ''), 10);
+  const selected =
+    (isValidYearMonth(requestedYear, requestedMonth) && getScheduleMonth(requestedYear, requestedMonth)) ||
+    months[0];
+  res.render('admin/schedule', {
+    title: 'Расписание',
+    months,
+    month: selected ?? null,
+    monthName: selected ? MONTH_NAMES[selected.month - 1] : '',
+    MONTH_NAMES,
+    groups: getGroups(),
+    entries: selected ? getScheduleEntries(selected.id) : [],
+    locations: getScheduleLocations(true),
+    daysInMonth: selected ? new Date(selected.year, selected.month, 0).getDate() : 0,
+    saved: req.query.saved === '1',
+  });
+});
+
+router.post('/schedule/month', requireAdmin, (req, res) => {
+  const year = parseInt(String(req.body.year), 10);
+  const monthNumber = parseInt(String(req.body.month), 10);
+  if (!isValidYearMonth(year, monthNumber)) {
+    res.status(400).send('Некорректный год или месяц');
+    return;
+  }
+  const target = createScheduleMonth(year, monthNumber, cleanText(req.body.title) || null);
+  const sourceId = parseInt(String(req.body.copy_from ?? ''), 10);
+  if (Number.isFinite(sourceId) && sourceId !== target.id) {
+    copyScheduleMonth(sourceId, target.id);
+  }
+  res.redirect(`/admin/schedule?year=${year}&month=${monthNumber}`);
+});
+
+router.post('/schedule/:year(\\d{4})/:month(\\d{1,2})', requireAdmin, (req, res) => {
+  const year = parseInt(req.params.year, 10);
+  const monthNumber = parseInt(req.params.month, 10);
+  const month = isValidYearMonth(year, monthNumber) ? getScheduleMonth(year, monthNumber) : undefined;
+  if (!month) {
+    res.status(404).send('Месяц расписания не найден');
+    return;
+  }
+
+  const groups = getGroups();
+  const groupIds = new Set(groups.map((group) => group.id));
+  const locationIds = new Set(getScheduleLocations(true).map((location) => location.id));
+  const rawSlots = req.body.slots && typeof req.body.slots === 'object' ? req.body.slots : {};
+  const slots: ScheduleSlotInput[] = [];
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+
+  try {
+    for (const [dayKey, dayValue] of Object.entries(rawSlots as Record<string, unknown>)) {
+      const day = parseInt(dayKey.replace(/^d/, ''), 10);
+      if (!Number.isInteger(day) || day < 1 || day > daysInMonth || !dayValue || typeof dayValue !== 'object') {
+        throw new Error('Некорректная дата занятия');
+      }
+      for (const [groupKey, rawSlot] of Object.entries(dayValue as Record<string, unknown>)) {
+        const groupId = parseInt(groupKey.replace(/^g/, ''), 10);
+        if (!groupIds.has(groupId) || !rawSlot || typeof rawSlot !== 'object') {
+          throw new Error('Некорректная группа');
+        }
+        const values = rawSlot as Record<string, unknown>;
+        const timeStart = parseScheduleTime(values.time_start);
+        const timeEnd = parseScheduleTime(values.time_end);
+        if ((timeStart && !timeEnd) || (!timeStart && timeEnd)) {
+          throw new Error(`Укажите начало и окончание занятия (${day} число)`);
+        }
+        if (timeStart && timeEnd && timeStart >= timeEnd) {
+          throw new Error(`Время окончания должно быть позже начала (${day} число)`);
+        }
+        const locationId = parseInt(String(values.location_id ?? ''), 10);
+        if (Number.isFinite(locationId) && !locationIds.has(locationId)) {
+          throw new Error('Выбрана неизвестная площадка');
+        }
+        slots.push({
+          day,
+          groupId,
+          timeStart,
+          timeEnd,
+          locationId: Number.isFinite(locationId) ? locationId : null,
+          note: cleanText(values.note) || null,
+        });
+      }
+    }
+    saveScheduleEntries(month, slots);
+  } catch (error) {
+    res.status(400).send(error instanceof Error ? error.message : 'Не удалось сохранить расписание');
+    return;
+  }
+
+  res.redirect(`/admin/schedule?year=${year}&month=${monthNumber}&saved=1`);
+});
+
+router.get('/schedule/locations', requireAdmin, (_req, res) => {
+  res.render('admin/schedule-locations', {
+    title: 'Площадки расписания',
+    locations: getScheduleLocations(true),
+    error: null,
+  });
+});
+
+router.post('/schedule/locations', requireAdmin, (req, res) => {
+  const input = parseLocationInput(req.body);
+  if (typeof input === 'string') {
+    res.status(400).send(input);
+    return;
+  }
+  try {
+    createScheduleLocation(input);
+    res.redirect('/admin/schedule/locations');
+  } catch {
+    res.status(400).send('Площадка с таким названием уже существует');
+  }
+});
+
+router.post('/schedule/locations/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!getScheduleLocation(id)) {
+    res.status(404).send('Площадка не найдена');
+    return;
+  }
+  const input = parseLocationInput(req.body);
+  if (typeof input === 'string') {
+    res.status(400).send(input);
+    return;
+  }
+  try {
+    updateScheduleLocation(id, input);
+    res.redirect('/admin/schedule/locations');
+  } catch {
+    res.status(400).send('Площадка с таким названием уже существует');
+  }
+});
+
+function isValidYearMonth(year: number, month: number): boolean {
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 && Number.isInteger(month) && month >= 1 && month <= 12;
+}
+
+function cleanText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseScheduleTime(value: unknown): string | null {
+  const time = cleanText(value).replace('.', ':');
+  if (!time) return null;
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Некорректный формат времени');
+  return time;
+}
+
+function parseLocationInput(body: Record<string, unknown>) {
+  const name = cleanText(body.name);
+  const address = cleanText(body.address);
+  const color = cleanText(body.color);
+  if (!name) return 'Укажите название площадки';
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) return 'Цвет должен быть указан в формате #RRGGBB';
+  return {
+    name,
+    address,
+    color: color.toLowerCase(),
+    sort_order: parseInt(String(body.sort_order ?? '0'), 10) || 0,
+    is_active: body.is_active ? 1 : 0,
+  };
+}
 
 // --- Players ---
 router.get('/players', requireAdmin, (_req, res) => {

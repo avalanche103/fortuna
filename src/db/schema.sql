@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS schedule_months (
   UNIQUE(year, month)
 );
 
+CREATE TABLE IF NOT EXISTS schedule_locations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  address TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '#6b7280',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS schedule_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   month_id INTEGER NOT NULL REFERENCES schedule_months(id) ON DELETE CASCADE,
@@ -75,6 +84,7 @@ CREATE TABLE IF NOT EXISTS schedule_entries (
   time_start TEXT,
   time_end TEXT,
   location TEXT,
+  location_id INTEGER REFERENCES schedule_locations(id),
   note TEXT
 );
 

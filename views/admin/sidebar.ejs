@@ -1,13 +1,14 @@
 <aside class="admin-sidebar">
   <div class="admin-sidebar__brand">ФК Фортуна</div>
   <nav class="admin-nav">
-    <a href="/admin">Дашборд</a>
-    <a href="/admin/news">Новости</a>
-    <a href="/admin/players">Игроки</a>
-    <a href="/admin/groups">Группы</a>
-    <a href="/admin/videos">Видео</a>
-    <a href="/admin/vizitka">Визитка</a>
-    <a href="/admin/settings">Настройки</a>
+    <a href="/admin" class="<%= currentPath === '/admin' ? 'active' : '' %>">Дашборд</a>
+    <a href="/admin/news" class="<%= currentPath.startsWith('/admin/news') ? 'active' : '' %>">Новости</a>
+    <a href="/admin/players" class="<%= currentPath.startsWith('/admin/players') ? 'active' : '' %>">Игроки</a>
+    <a href="/admin/groups" class="<%= currentPath.startsWith('/admin/groups') ? 'active' : '' %>">Группы</a>
+    <a href="/admin/schedule" class="<%= currentPath.startsWith('/admin/schedule') ? 'active' : '' %>">Расписание</a>
+    <a href="/admin/videos" class="<%= currentPath.startsWith('/admin/videos') ? 'active' : '' %>">Видео</a>
+    <a href="/admin/vizitka" class="<%= currentPath.startsWith('/admin/vizitka') ? 'active' : '' %>">Визитка</a>
+    <a href="/admin/settings" class="<%= currentPath.startsWith('/admin/settings') ? 'active' : '' %>">Настройки</a>
     <a href="/" target="_blank">Открыть сайт</a>
   </nav>
   <form action="/admin/logout" method="post" style="padding:1rem 1.25rem;margin-top:2rem;">

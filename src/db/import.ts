@@ -69,8 +69,6 @@ function clearAllContent(): void {
     DELETE FROM archive_photos;
     DELETE FROM archive_items;
     DELETE FROM archive_years;
-    DELETE FROM schedule_entries;
-    DELETE FROM schedule_months;
     DELETE FROM group_players;
     DELETE FROM players;
     DELETE FROM news;
@@ -90,10 +88,6 @@ function clearSections(sections: Set<string>): void {
     db.exec('DELETE FROM players WHERE is_graduate = 0');
   } else if (sections.has('graduates')) {
     db.exec('DELETE FROM players WHERE is_graduate = 1');
-  }
-  if (sections.has('schedule')) {
-    db.exec('DELETE FROM schedule_entries');
-    db.exec('DELETE FROM schedule_months');
   }
   if (sections.has('videos')) db.exec('DELETE FROM videos');
   if (sections.has('vizitka')) {
@@ -309,16 +303,13 @@ async function importSchedule(): Promise<void> {
   const html = await fetchPage(`${BASE}/raspisanie`);
   const { year, month, groupNames, rows } = parseSchedulePage(html);
 
-  db.prepare('DELETE FROM schedule_entries WHERE month_id IN (SELECT id FROM schedule_months WHERE year=? AND month=?)').run(
-    year,
-    month
-  );
-  db.prepare('DELETE FROM schedule_months WHERE year=? AND month=?').run(year, month);
-
-  const monthResult = db
-    .prepare('INSERT INTO schedule_months (year, month, title) VALUES (?, ?, ?)')
-    .run(year, month, `${month}.${year}`);
-  const monthId = Number(monthResult.lastInsertRowid);
+  db.prepare(
+    `INSERT INTO schedule_months (year, month, title) VALUES (?, ?, ?)
+     ON CONFLICT(year, month) DO UPDATE SET title = excluded.title`
+  ).run(year, month, `${month}.${year}`);
+  const monthId = queryRow<{ id: number }>(
+    db.prepare('SELECT id FROM schedule_months WHERE year = ? AND month = ?').get(year, month)
+  )!.id;
 
   const groupIds = groupNames.map((name) => {
     const slug = GROUP_BY_TITLE[name];
@@ -327,7 +318,12 @@ async function importSchedule(): Promise<void> {
 
   const insertEntry = db.prepare(
     `INSERT INTO schedule_entries (month_id, day, weekday, group_id, time_start, time_end, note)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(month_id, day, group_id) DO UPDATE SET
+       weekday = excluded.weekday,
+       time_start = excluded.time_start,
+       time_end = excluded.time_end,
+       note = excluded.note`
   );
 
   let entries = 0;

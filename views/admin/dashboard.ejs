@@ -8,32 +8,20 @@
 </head>
 <body>
   <div class="admin-layout">
-    <aside class="admin-sidebar">
-      <div class="admin-sidebar__brand">ФК Фортуна</div>
-      <nav class="admin-nav">
-        <a href="/admin" class="active">Дашборд</a>
-        <a href="/admin/news">Новости</a>
-        <a href="/admin/players">Игроки</a>
-        <a href="/admin/videos">Видео</a>
-        <a href="/admin/vizitka">Визитка</a>
-        <a href="/admin/settings">Настройки</a>
-        <a href="/" target="_blank">Открыть сайт</a>
-      </nav>
-      <form action="/admin/logout" method="post" style="padding:1rem 1.25rem;margin-top:2rem;">
-        <button type="submit" class="btn btn--outline" style="width:100%;color:#fff;border-color:rgba(255,255,255,0.3);">Выйти</button>
-      </form>
-    </aside>
+    <%- include('sidebar') %>
     <div class="admin-main">
       <h1><%= title %></h1>
       <div class="admin-stats">
         <div class="stat-card"><div class="stat-card__value"><%= stats.news %></div><div class="stat-card__label">Новостей</div></div>
         <div class="stat-card"><div class="stat-card__value"><%= stats.players %></div><div class="stat-card__label">Игроков</div></div>
         <div class="stat-card"><div class="stat-card__value"><%= stats.groups %></div><div class="stat-card__label">Групп</div></div>
+        <div class="stat-card"><div class="stat-card__value"><%= stats.schedule %></div><div class="stat-card__label">Месяцев расписания</div></div>
         <div class="stat-card"><div class="stat-card__value"><%= stats.videos %></div><div class="stat-card__label">Видео</div></div>
       </div>
       <div class="btn-group">
         <a href="/admin/news/new" class="btn btn--primary">+ Новость</a>
         <a href="/admin/players/new" class="btn btn--secondary">+ Игрок</a>
+        <a href="/admin/schedule" class="btn btn--secondary">Расписание</a>
         <a href="/admin/settings" class="btn btn--outline">Текст набора</a>
       </div>
     </div>

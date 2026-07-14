@@ -59,8 +59,22 @@ export interface ScheduleEntry {
   time_start: string | null;
   time_end: string | null;
   location: string | null;
+  location_id: number | null;
   note: string | null;
   group_name?: string;
+  group_slug?: string;
+  location_name?: string | null;
+  location_address?: string | null;
+  location_color?: string | null;
+}
+
+export interface ScheduleLocation {
+  id: number;
+  name: string;
+  address: string;
+  color: string;
+  sort_order: number;
+  is_active: number;
 }
 
 export interface ArchiveYear {

@@ -21,6 +21,9 @@ import {
   getNewsList,
   getNewsYears,
   getScheduleEntries,
+  getScheduleLocations,
+  getScheduleMonth,
+  getScheduleMonths,
   getSettings,
   getRecruitmentContent,
   getVideos,
@@ -156,17 +159,43 @@ router.get('/gruppy/:slug', (req: Request, res: Response) => {
   });
 });
 
-router.get('/raspisanie', (_req: Request, res: Response) => {
-  const month = getCurrentScheduleMonth();
+router.get('/raspisanie', (req: Request, res: Response) => {
+  const months = getScheduleMonths();
   const groups = getScheduleGroups();
-  const entries = month ? getScheduleEntries(month.id) : [];
+  const requestedYear = parseInt(String(req.query.year ?? ''), 10);
+  const requestedMonth = parseInt(String(req.query.month ?? ''), 10);
+  const hasRequestedMonth =
+    Number.isInteger(requestedYear) &&
+    requestedYear >= 2000 &&
+    requestedYear <= 2100 &&
+    Number.isInteger(requestedMonth) &&
+    requestedMonth >= 1 &&
+    requestedMonth <= 12;
+  const month = hasRequestedMonth
+    ? getScheduleMonth(requestedYear, requestedMonth)
+    : getCurrentScheduleMonth() ?? months[0];
+  const selectedGroup = groups.find((group) => group.slug === String(req.query.group ?? '')) ?? null;
+  const allEntries = month ? getScheduleEntries(month.id) : [];
+  const entries = selectedGroup
+    ? allEntries.filter((entry) => entry.group_id === selectedGroup.id)
+    : allEntries;
+  const visibleGroups = selectedGroup ? [selectedGroup] : groups;
+  const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : new Date().getFullYear());
+  const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : new Date().getMonth() + 1);
 
   res.render('pages/raspisanie', {
     title: 'Расписание',
     month,
-    monthName: month ? MONTH_NAMES[month.month - 1] : MONTH_NAMES[new Date().getMonth()],
-    groups,
+    monthName: MONTH_NAMES[displayMonth - 1],
+    displayYear,
+    displayMonth,
+    months,
+    groups: visibleGroups,
+    allGroups: groups,
+    selectedGroup,
     entries,
+    locations: getScheduleLocations(false),
+    MONTH_NAMES,
   });
 });
 

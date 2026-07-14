@@ -11,6 +11,7 @@ import type {
   News,
   Player,
   ScheduleEntry,
+  ScheduleLocation,
   ScheduleMonth,
   SiteSettings,
   Video,
@@ -223,18 +224,132 @@ export function getCurrentScheduleMonth(): ScheduleMonth | undefined {
   );
 }
 
+export function getScheduleMonths(): ScheduleMonth[] {
+  return queryRows<ScheduleMonth>(
+    db.prepare('SELECT * FROM schedule_months ORDER BY year DESC, month DESC').all()
+  );
+}
+
 export function getScheduleMonth(year: number, month: number): ScheduleMonth | undefined {
   return queryRow<ScheduleMonth>(
     db.prepare('SELECT * FROM schedule_months WHERE year = ? AND month = ?').get(year, month)
   );
 }
 
+export function createScheduleMonth(year: number, month: number, title: string | null = null): ScheduleMonth {
+  db.prepare(
+    `INSERT INTO schedule_months (year, month, title)
+     VALUES (?, ?, ?)
+     ON CONFLICT(year, month) DO UPDATE SET title = COALESCE(excluded.title, schedule_months.title)`
+  ).run(year, month, title);
+  return getScheduleMonth(year, month)!;
+}
+
+export function copyScheduleMonth(sourceId: number, targetId: number): void {
+  db.prepare(
+    `INSERT INTO schedule_entries
+       (month_id, day, weekday, group_id, time_start, time_end, location, location_id, note)
+     SELECT ?, day, weekday, group_id, time_start, time_end, location, location_id, note
+     FROM schedule_entries WHERE month_id = ?
+     ON CONFLICT(month_id, day, group_id) DO UPDATE SET
+       time_start = excluded.time_start,
+       time_end = excluded.time_end,
+       location = excluded.location,
+       location_id = excluded.location_id,
+       note = excluded.note`
+  ).run(targetId, sourceId);
+}
+
+export function getScheduleLocations(includeInactive = false): ScheduleLocation[] {
+  const where = includeInactive ? '' : 'WHERE is_active = 1';
+  return queryRows<ScheduleLocation>(
+    db.prepare(`SELECT * FROM schedule_locations ${where} ORDER BY sort_order, name`).all()
+  );
+}
+
+export function getScheduleLocation(id: number): ScheduleLocation | undefined {
+  return queryRow<ScheduleLocation>(db.prepare('SELECT * FROM schedule_locations WHERE id = ?').get(id));
+}
+
+export function createScheduleLocation(input: Omit<ScheduleLocation, 'id'>): ScheduleLocation {
+  const result = db.prepare(
+    `INSERT INTO schedule_locations (name, address, color, sort_order, is_active)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(input.name, input.address, input.color, input.sort_order, input.is_active);
+  return getScheduleLocation(Number(result.lastInsertRowid))!;
+}
+
+export function updateScheduleLocation(id: number, input: Omit<ScheduleLocation, 'id'>): void {
+  db.prepare(
+    `UPDATE schedule_locations
+     SET name = ?, address = ?, color = ?, sort_order = ?, is_active = ?
+     WHERE id = ?`
+  ).run(input.name, input.address, input.color, input.sort_order, input.is_active, id);
+}
+
+export interface ScheduleSlotInput {
+  day: number;
+  groupId: number;
+  timeStart: string | null;
+  timeEnd: string | null;
+  locationId: number | null;
+  note: string | null;
+}
+
+export function saveScheduleEntries(month: ScheduleMonth, slots: ScheduleSlotInput[]): void {
+  const remove = db.prepare(
+    'DELETE FROM schedule_entries WHERE month_id = ? AND day = ? AND group_id = ?'
+  );
+  const upsert = db.prepare(
+    `INSERT INTO schedule_entries
+       (month_id, day, weekday, group_id, time_start, time_end, location, location_id, note)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
+     ON CONFLICT(month_id, day, group_id) DO UPDATE SET
+       weekday = excluded.weekday,
+       time_start = excluded.time_start,
+       time_end = excluded.time_end,
+       location = NULL,
+       location_id = excluded.location_id,
+       note = excluded.note`
+  );
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    for (const slot of slots) {
+      const isEmpty = !slot.timeStart && !slot.timeEnd && !slot.locationId && !slot.note;
+      if (isEmpty) {
+        remove.run(month.id, slot.day, slot.groupId);
+        continue;
+      }
+      const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(month.year, month.month - 1, slot.day)))
+        .replace('.', '');
+      upsert.run(
+        month.id,
+        slot.day,
+        weekday,
+        slot.groupId,
+        slot.timeStart,
+        slot.timeEnd,
+        slot.locationId,
+        slot.note
+      );
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
+
 export function getScheduleEntries(monthId: number): ScheduleEntry[] {
   return queryRows<ScheduleEntry>(
     db.prepare(
-      `SELECT se.*, g.name as group_name
+      `SELECT se.*, g.name AS group_name, g.slug AS group_slug,
+              sl.name AS location_name, sl.address AS location_address, sl.color AS location_color
        FROM schedule_entries se
        JOIN groups g ON g.id = se.group_id
+       LEFT JOIN schedule_locations sl ON sl.id = se.location_id
        WHERE se.month_id = ?
        ORDER BY se.day, g.sort_order`
     ).all(monthId)
