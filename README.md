@@ -15,6 +15,20 @@ npm run dev
 Сайт: http://localhost:3000  
 Админка: http://localhost:3000/admin (логин `admin` / `admin`)
 
+## Деплой на Render
+
+Проект заточен под долгоживущий Node-сервис (не Vercel serverless).
+
+1. В [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** и укажите этот репозиторий  
+   (или **Web Service** вручную с настройками из [`render.yaml`](render.yaml)).
+2. Нужен план со **Persistent Disk** (Starter и выше): диск монтируется в `/var/data` для SQLite и загрузок.
+3. Build: `npm ci && npm run build` · Start: `npm start` · Node **22+**.
+4. Переменные: `DATA_DIR=/var/data`, `NODE_ENV=production`, `SESSION_SECRET` (генерируется автоматически в Blueprint).
+5. После первого деплоя откройте `/admin` (`admin` / `admin`) и смените пароль.  
+   Контент можно наполнить через админку или одноразовым Shell: `npm run db:import`.
+
+Локальная разработка без `DATA_DIR` по-прежнему хранит БД в `data/` и файлы в `public/uploads/`.
+
 ## Сохранённые маршруты
 
 | Путь | Раздел |
@@ -41,8 +55,8 @@ npm run dev
 
 ## Админка
 
-- Новости, игроки, видео, визитка, текст набора на главной
-- Загрузка фото игроков в `public/uploads/`
+- Новости, игроки, видео, визитка, расписание, площадки, текст набора на главной
+- Загрузка фото в каталог uploads (локально `public/uploads/`, на Render — диск)
 
 ## Миграция с текущего сайта
 

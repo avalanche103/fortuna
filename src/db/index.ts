@@ -3,13 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { queryRow, queryRows } from './helpers';
 import { buildNewsExcerpt } from '../utils/news-text';
+import { DATA_DIR, DB_PATH, ensureDataDirs } from '../paths';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'fortuna.db');
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+ensureDataDirs();
 
 export const db = new DatabaseSync(DB_PATH);
 

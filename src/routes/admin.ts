@@ -5,6 +5,7 @@ import fs from 'fs';
 import slugify from 'slugify';
 import db from '../db';
 import { queryRows } from '../db/helpers';
+import { UPLOAD_DIR, ensureDataDirs } from '../paths';
 import { requireAdmin, verifyAdmin, getAdminId } from '../middleware/auth';
 import {
   copyScheduleMonth,
@@ -27,7 +28,8 @@ import {
 import type { ScheduleSlotInput } from '../services/content';
 import { resolveYoutubeTitle } from '../utils/youtube';
 
-const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+ensureDataDirs();
+const uploadDir = UPLOAD_DIR;
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({

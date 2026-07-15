@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: fortuna
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: SESSION_SECRET
+        generateValue: true
+    disk:
+      name: fortuna-data
+      mountPath: /var/data
+      sizeGB: 1
