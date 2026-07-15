@@ -56,7 +56,6 @@ services:
       - ${DATA_DIR}:/data
 EOF
 
-docker compose pull || true
 docker compose build --pull
 docker compose up -d --remove-orphans
 

@@ -41,7 +41,8 @@ gcloud compute instances describe "$VM_NAME" --zone="$ZONE" --project="$PROJECT_
        --boot-disk-size="${DISK_SIZE_GB}GB" \
        --boot-disk-type=pd-standard \
        --tags=http-server \
-       --metadata=REPO_URL="$REPO_URL",BRANCH="$BRANCH" \
+       --metadata "REPO_URL=${REPO_URL}" \
+       --metadata "BRANCH=${BRANCH}" \
        --metadata-from-file=startup-script="$STARTUP_SCRIPT"
 
 echo
