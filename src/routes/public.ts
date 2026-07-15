@@ -176,9 +176,16 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     : getCurrentScheduleMonth() ?? months[0];
   const selectedGroup = groups.find((group) => group.slug === String(req.query.group ?? '')) ?? null;
   const allEntries = month ? getScheduleEntries(month.id) : [];
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const upcomingEntries = allEntries.filter((entry) => {
+    if (!month) return false;
+    const entryTime = new Date(month.year, month.month - 1, entry.day).getTime();
+    return entryTime >= todayStart;
+  });
   const entries = selectedGroup
-    ? allEntries.filter((entry) => entry.group_id === selectedGroup.id)
-    : allEntries;
+    ? upcomingEntries.filter((entry) => entry.group_id === selectedGroup.id)
+    : upcomingEntries;
   const visibleGroups = selectedGroup ? [selectedGroup] : groups;
   const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : new Date().getFullYear());
   const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : new Date().getMonth() + 1);
