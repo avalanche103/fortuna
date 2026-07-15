@@ -21,12 +21,13 @@ npm run dev
 
 1. В [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** и укажите этот репозиторий  
    (или **Web Service** вручную с настройками из [`render.yaml`](render.yaml)).
-2. Build: `npm ci --include=dev && npm run build && test -f dist/index.js && npm prune --omit=dev` · Start: `npm start` · Node **22+**.  
-   Важно: без `--include=dev` TypeScript не ставится при `NODE_ENV=production`, и `dist/` не появляется.
-3. Переменные: `NODE_ENV=production`, `SESSION_SECRET` (генерируется автоматически в Blueprint), `NODE_VERSION=22.14.0`.
+2. Build: `npm install` · Start: `npm start` (`tsx src/index.ts`, без обязательной сборки `dist/`) · Node **22+**.
+3. Переменные: `NODE_ENV=production`, `SESSION_SECRET`, `NODE_VERSION=22.14.0`.
 4. После первого деплоя откройте `/admin` (`admin` / `admin`) и смените пароль.
 
-Если сервис создавали вручную (не через Blueprint), в Settings → Build & Deploy поставьте тот же **Build Command**, иначе start упадёт с `Cannot find module .../dist/index.js`.
+Если сервис создавали вручную, в Settings поставьте:
+- **Build Command:** `npm install`
+- **Start Command:** `npm start`
 
 ### Free plan — ограничения
 
