@@ -15,6 +15,18 @@ npm run dev
 Сайт: http://localhost:3000  
 Админка: http://localhost:3000/admin (логин `admin` / `admin`)
 
+## Деплой на GCP (рекомендуется, минимум бюджета)
+
+Compute Engine **e2-micro** + Docker + SQLite на постоянном диске. Данные сохраняются.
+
+Пошагово: [`deploy/gcp/README.md`](deploy/gcp/README.md)
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+bash deploy/gcp/create-vm.sh
+```
+
 ## Деплой на Render
 
 Проект заточен под долгоживущий Node-сервис (не Vercel serverless).
