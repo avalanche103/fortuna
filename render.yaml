@@ -4,12 +4,12 @@ services:
     runtime: node
     plan: free
     region: frankfurt
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build && test -f dist/index.js && npm prune --omit=dev
     startCommand: npm start
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: "22.14.0"
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
