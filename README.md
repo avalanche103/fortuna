@@ -21,13 +21,27 @@ npm run dev
 
 1. В [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** и укажите этот репозиторий  
    (или **Web Service** вручную с настройками из [`render.yaml`](render.yaml)).
-2. Нужен план со **Persistent Disk** (Starter и выше): диск монтируется в `/var/data` для SQLite и загрузок.
-3. Build: `npm ci && npm run build` · Start: `npm start` · Node **22+**.
-4. Переменные: `DATA_DIR=/var/data`, `NODE_ENV=production`, `SESSION_SECRET` (генерируется автоматически в Blueprint).
-5. После первого деплоя откройте `/admin` (`admin` / `admin`) и смените пароль.  
-   Контент можно наполнить через админку или одноразовым Shell: `npm run db:import`.
+2. Build: `npm ci && npm run build` · Start: `npm start` · Node **22+**.
+3. Переменные: `NODE_ENV=production`, `SESSION_SECRET` (генерируется автоматически в Blueprint).
+4. После первого деплоя откройте `/admin` (`admin` / `admin`) и смените пароль.
 
-Локальная разработка без `DATA_DIR` по-прежнему хранит БД в `data/` и файлы в `public/uploads/`.
+### Free plan — ограничения
+
+На **free** нет Persistent Disk:
+
+- SQLite и uploads живут на эфемерном диске инстанса;
+- после **redeploy / sleep / restart** данные сбрасываются;
+- сервис «засыпает» без трафика (первый запрос может ждать ~30–50 с).
+
+Для продакшена с сохранением контента нужен план со диском (Starter+) и `DATA_DIR=/var/data` — см. историю `render.yaml` или README ниже.
+
+Чтобы подтянуть контент после каждого деплоя на free: Shell → `npm run db:import` (или наполняйте админкой заново).
+
+### Starter+ (с диском)
+
+Добавьте в сервис Persistent Disk `mountPath: /var/data` и env `DATA_DIR=/var/data` — тогда БД и uploads сохраняются между деплоями.
+
+Локальная разработка без `DATA_DIR` хранит БД в `data/` и файлы в `public/uploads/`.
 
 ## Сохранённые маршруты
 

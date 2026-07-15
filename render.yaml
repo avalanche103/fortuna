@@ -2,7 +2,7 @@ services:
   - type: web
     name: fortuna
     runtime: node
-    plan: starter
+    plan: free
     region: frankfurt
     buildCommand: npm ci && npm run build
     startCommand: npm start
@@ -12,11 +12,5 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      - key: DATA_DIR
-        value: /var/data
       - key: SESSION_SECRET
         generateValue: true
-    disk:
-      name: fortuna-data
-      mountPath: /var/data
-      sizeGB: 1
