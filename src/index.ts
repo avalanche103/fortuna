@@ -14,7 +14,6 @@ ensureSeedData();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const isProd = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
@@ -30,7 +29,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
-      secure: isProd,
+      secure: 'auto',
       sameSite: 'lax',
     },
   })
