@@ -36,8 +36,19 @@
         </div>
         <div class="form-group">
           <label>Текст</label>
+          <div class="news-editor-toolbar" id="news-editor-toolbar">
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="paragraph">Абзац</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="line-break">Перенос</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="h2">H2</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="h3">H3</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="link">Ссылка</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="youtube">YouTube</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ul">Список UL</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ol">Список OL</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="quote">Цитата</button>
+          </div>
           <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? article.body : '' %></textarea>
-          <p class="form-hint">Можно перетащить картинку прямо в поле текста — она вставится в место курсора.</p>
+          <p class="form-hint">Можно перетащить картинку в поле текста. Для YouTube нажмите кнопку "YouTube" и вставьте ссылку.</p>
         </div>
         <div class="form-group">
           <label>Дата публикации</label>

@@ -16,7 +16,10 @@ import {
   getGroupBySlug,
   getScheduleGroups,
   getGraduateBySlug,
+  getPlayerBySlug,
   getLatestNews,
+  getLatestNewsByCategory,
+  getLatestNewsExcludingCategory,
   getNewsBySlug,
   getNewsList,
   getNewsYears,
@@ -44,14 +47,17 @@ router.get('/', (req: Request, res: Response) => {
   const settings = getSettings();
   const birthdays = getBirthdaysThisMonth();
   const monthName = MONTH_NAMES[new Date().getMonth()];
+  const recruitmentNews = getLatestNewsByCategory('nabor');
 
   res.render('pages/home', {
     title: 'Футбольный клуб Фортуна',
-    news: getLatestNews(9),
+    recruitmentNews,
+    news: getLatestNewsExcludingCategory(8, 'nabor'),
+    todayDate: formatDateRu(new Date().toISOString()),
     birthdays,
     monthName,
     videos: getVideos(),
-    graduates: getFeaturedGraduates(12),
+    graduates: getAllGraduates(),
     settings,
     recruitment: getRecruitmentContent(settings),
     formatDateRu,
@@ -223,6 +229,20 @@ router.get('/vospitanniki/:slug', (req: Request, res: Response) => {
   res.render('pages/vospitannik-detail', {
     title: graduate.name,
     graduate,
+  });
+});
+
+router.get('/player/:slug', (req: Request, res: Response) => {
+  const player = getPlayerBySlug(req.params.slug);
+  if (!player) {
+    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    return;
+  }
+
+  res.render('pages/player-detail', {
+    title: player.name,
+    player,
+    formatDateRu,
   });
 });
 

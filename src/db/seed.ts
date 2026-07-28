@@ -1,6 +1,31 @@
 import bcrypt from 'bcrypt';
 import db, { runMigrations } from './index';
 
+function getSettingValue(key: string, fallback = ''): string {
+  const row = db.prepare('SELECT value FROM site_settings WHERE key = ?').get(key) as
+    | { value: string }
+    | undefined;
+  return row?.value ?? fallback;
+}
+
+export function ensureNaborNews(): void {
+  const exists = db.prepare("SELECT id FROM news WHERE category = 'nabor' LIMIT 1").get();
+  if (exists) return;
+
+  const title = getSettingValue('recruitment_title', 'Набор в ФК «Фортуна»');
+  const excerpt = getSettingValue('recruitment_subtitle', '');
+  const body = getSettingValue(
+    'recruitment_body',
+    'Подробности о наборе — на странице «Набор».'
+  );
+  const publishedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  db.prepare(
+    `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, published_at)
+     VALUES (?, 'nabor', 'nabor', ?, ?, 1, ?)`
+  ).run(title, excerpt || null, body, publishedAt);
+}
+
 export function ensureSeedData(): void {
   const adminExists = db.prepare('SELECT id FROM admins LIMIT 1').get();
   if (!adminExists) {
@@ -46,6 +71,8 @@ export function ensureSeedData(): void {
     insertGroup.run(g.name, g.slug, g.birth_years, g.sort_order, g.is_schedule_only ?? 0);
   }
   db.prepare(`UPDATE groups SET is_schedule_only = 1 WHERE slug = 'chu-do-master'`).run();
+
+  ensureNaborNews();
 
   const vizitkaExists = db.prepare('SELECT id FROM vizitka_sections LIMIT 1').get();
   if (!vizitkaExists) {

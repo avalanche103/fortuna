@@ -27,59 +27,60 @@
           <h2 class="section__title">Новости</h2>
           <a href="/blog" class="btn btn--outline">Все новости</a>
         </div>
-        <% if (news.length === 0) { %>
-          <p>Новостей пока нет.</p>
-        <% } else { %>
-          <% const featured = news[0]; %>
-          <% const featuredUrl = '/blog/' + featured.category + '/' + featured.slug; %>
-          <% const featuredImg = getNewsCoverImage(featured); %>
-          <% const featuredExcerpt = getNewsExcerpt(featured, 280); %>
-          <article class="news-item news-item--featured">
-            <a href="<%= featuredUrl %>" class="news-item__cover-link">
-              <% if (featuredImg) { %>
-                <img class="news-item__cover news-item__cover--large" src="<%= featuredImg %>" alt="<%= featured.title %>" loading="eager">
-              <% } else { %>
-                <div class="news-item__cover news-item__cover--large news-item__cover--placeholder"></div>
-              <% } %>
-            </a>
-            <div class="news-item__body">
-              <div class="news-item__date"><%= formatDateRu(featured.published_at) %></div>
-              <h3 class="news-item__title news-item__title--featured">
-                <a href="<%= featuredUrl %>"><%= featured.title %></a>
-              </h3>
-              <% if (featuredExcerpt) { %>
-                <p class="news-item__excerpt"><%= featuredExcerpt %></p>
-              <% } %>
-              <a href="<%= featuredUrl %>" class="btn btn--primary" style="margin-top:0.75rem;font-size:0.8rem;padding:0.45rem 1rem;">Читать</a>
-            </div>
-          </article>
-
-          <% if (news.length > 1) { %>
-            <div class="news-grid news-grid--compact">
-              <% news.slice(1).forEach(function(item) { %>
-                <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
-                <% const itemImg = getNewsCoverImage(item); %>
-                <% const excerpt = getNewsExcerpt(item, 180); %>
-                <article class="news-item news-item--compact">
-                  <a href="<%= itemUrl %>" class="news-item__thumb-link">
-                    <% if (itemImg) { %>
-                      <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
-                    <% } else { %>
-                      <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
-                    <% } %>
-                  </a>
-                  <div class="news-item__body">
-                    <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
-                    <h3 class="news-item__title">
-                      <a href="<%= itemUrl %>"><%= item.title %></a>
-                    </h3>
-                    <p class="news-item__excerpt"><%= excerpt || '' %></p>
-                  </div>
-                </article>
-              <% }); %>
-            </div>
+        <div class="news-grid news-grid--home">
+          <% if (recruitmentNews) { %>
+            <% const recruitmentUrl = '/blog/' + recruitmentNews.category + '/' + recruitmentNews.slug; %>
+            <% const recruitmentImg = getNewsCoverImage(recruitmentNews); %>
+            <% const recruitmentExcerpt = getNewsExcerpt(recruitmentNews, 180); %>
+            <article class="news-item news-item--compact">
+              <a href="<%= recruitmentUrl %>" class="news-item__thumb-link">
+                <% if (recruitmentImg) { %>
+                  <img class="news-item__cover news-item__cover--small" src="<%= recruitmentImg %>" alt="<%= recruitmentNews.title %>" loading="lazy">
+                <% } else { %>
+                  <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+                <% } %>
+              </a>
+              <div class="news-item__body">
+                <div class="news-item__date"><%= todayDate %></div>
+                <h3 class="news-item__title">
+                  <a href="<%= recruitmentUrl %>"><%= recruitmentNews.title %></a>
+                </h3>
+                <p class="news-item__excerpt"><%= recruitmentExcerpt || '' %></p>
+              </div>
+            </article>
+          <% } else { %>
+            <article class="news-item news-item--compact">
+              <div class="news-item__body">
+                <div class="news-item__date"><%= todayDate %></div>
+                <h3 class="news-item__title">Новость про набор не настроена</h3>
+                <p class="news-item__excerpt">Создайте или отредактируйте новость в админке с категорией <strong>nabor</strong>.</p>
+              </div>
+            </article>
           <% } %>
-        <% } %>
+
+          <% news.forEach(function(item) { %>
+            <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
+            <% const itemImg = getNewsCoverImage(item); %>
+            <% const excerpt = getNewsExcerpt(item, 180); %>
+            <article class="news-item news-item--compact">
+              <a href="<%= itemUrl %>" class="news-item__thumb-link">
+                <% if (itemImg) { %>
+                  <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
+                <% } else { %>
+                  <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+                <% } %>
+              </a>
+              <div class="news-item__body">
+                <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
+                <h3 class="news-item__title">
+                  <a href="<%= itemUrl %>"><%= item.title %></a>
+                </h3>
+                <p class="news-item__excerpt"><%= excerpt || '' %></p>
+              </div>
+            </article>
+          <% }); %>
+
+        </div>
       </div>
 
       <aside class="home-aside">
@@ -179,19 +180,40 @@
       <h2 class="section__title">Воспитанники</h2>
       <a href="/vospitanniki" class="btn btn--outline">Перейти в раздел</a>
     </div>
-    <div class="players-grid players-grid--graduates">
-      <% graduates.forEach(function(p) { %>
-        <% const nameParts = splitPlayerName(p.name); %>
-        <a href="/vospitanniki/<%= p.slug %>" class="player-card">
-          <% if (p.photo) { %>
-            <img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
-          <% } else { %>
-            <div class="player-card__photo player-card__photo--placeholder"><%= nameParts.surname.charAt(0) %></div>
-          <% } %>
-          <%- include('../partials/player-name', { name: p.name }) %>
-          <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
-        </a>
-      <% }); %>
+    <% const graduatesPerPage = 6; %>
+    <% const graduatesPageCount = Math.ceil(graduates.length / graduatesPerPage); %>
+    <div class="video-carousel graduates-carousel" id="graduates-carousel" data-per-page="<%= graduatesPerPage %>">
+      <div class="video-carousel__viewport">
+        <% for (let page = 0; page < graduatesPageCount; page++) { %>
+          <div class="video-carousel__page<%= page === 0 ? ' is-active' : '' %>" data-page="<%= page %>">
+            <div class="players-grid players-grid--graduates players-grid--graduates-carousel">
+              <% graduates.slice(page * graduatesPerPage, page * graduatesPerPage + graduatesPerPage).forEach(function(p) { %>
+                <% const nameParts = splitPlayerName(p.name); %>
+                <a href="/vospitanniki/<%= p.slug %>" class="player-card">
+                  <% if (p.photo) { %>
+                    <img class="player-card__photo" src="<%= p.photo %>" alt="<%= p.name %>">
+                  <% } else { %>
+                    <div class="player-card__photo player-card__photo--placeholder"><%= nameParts.surname.charAt(0) %></div>
+                  <% } %>
+                  <%- include('../partials/player-name', { name: p.name }) %>
+                  <% if (p.club) { %><div class="player-card__meta"><%= p.club %></div><% } %>
+                </a>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+      <% if (graduatesPageCount > 1) { %>
+        <div class="video-carousel__nav">
+          <button type="button" class="video-carousel__btn video-carousel__btn--prev" aria-label="Предыдущие воспитанники">‹</button>
+          <div class="video-carousel__dots">
+            <% for (let page = 0; page < graduatesPageCount; page++) { %>
+              <button type="button" class="video-carousel__dot<%= page === 0 ? ' is-active' : '' %>" data-page="<%= page %>" aria-label="Страница <%= page + 1 %>"></button>
+            <% } %>
+          </div>
+          <button type="button" class="video-carousel__btn video-carousel__btn--next" aria-label="Следующие воспитанники">›</button>
+        </div>
+      <% } %>
     </div>
   </div>
 </section>

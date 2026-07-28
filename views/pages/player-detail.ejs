@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+
+  <main>
+    <div class="page-header">
+      <div class="container">
+        <%
+          const formatWord = (word) => {
+            const w = String(word ?? '').replace(/\u00a0/g, ' ').trim();
+            if (!w) return '';
+            const lower = w.toLowerCase();
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+          };
+          const displayName = String(player.name ?? '')
+            .replace(/\u00a0/g, ' ')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(formatWord)
+            .join(' ');
+        %>
+        <%- include('../partials/player-name', { name: displayName, heading: true }) %>
+      </div>
+    </div>
+
+    <div class="container section" style="padding-top:0;">
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
+        <% if (player.photo) { %>
+          <img src="<%= player.photo %>" alt="<%= player.name %>" style="border-radius:12px;width:100%;height:auto;object-fit:cover;">
+        <% } else { %>
+          <div style="border-radius:12px;width:100%;aspect-ratio:1;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue-light),var(--blue));color:var(--white);font-family:var(--font-heading);font-size:2.3rem;">
+            <%= splitPlayerName(displayName).surname.charAt(0) %>
+          </div>
+        <% } %>
+
+        <div class="card" style="padding:2rem;">
+          <% if (player.birth_date) { %>
+            <p><strong>Дата рождения:</strong> <%= formatDateRu(player.birth_date) %></p>
+          <% } %>
+          <% if (player.position) { %>
+            <p><strong>Амплуа:</strong> <%= player.position %></p>
+          <% } %>
+          <% if (player.club) { %>
+            <p><strong>Клуб:</strong> <%= player.club %></p>
+          <% } %>
+          <% if (player.bio) { %>
+            <div style="margin-top:1rem;white-space:pre-line;"><%= player.bio %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <p style="margin-top:2rem;">
+        <a href="/gruppy" class="btn btn--outline">← Все группы</a>
+      </p>
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</body>
+</html>
+

@@ -72,6 +72,19 @@ export function getLatestNews(limit = 8): News[] {
   return queryRows<News>(db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ?').all(limit));
 }
 
+export function getLatestNewsByCategory(category: string): News | undefined {
+  return queryRow<News>(
+    db.prepare('SELECT * FROM news WHERE category = ? ORDER BY published_at DESC LIMIT 1').get(category)
+  );
+}
+
+export function getLatestNewsExcludingCategory(limit = 8, category = ''): News[] {
+  if (!category) return getLatestNews(limit);
+  return queryRows<News>(
+    db.prepare('SELECT * FROM news WHERE category != ? ORDER BY published_at DESC LIMIT ?').all(category, limit)
+  );
+}
+
 export function getNewsYears(): number[] {
   return queryRows<{ year: number }>(
     db
@@ -149,6 +162,10 @@ export function getAllGraduates(): Player[] {
 
 export function getGraduateBySlug(slug: string): Player | undefined {
   return queryRow<Player>(db.prepare('SELECT * FROM players WHERE slug = ? AND is_graduate = 1').get(slug));
+}
+
+export function getPlayerBySlug(slug: string): Player | undefined {
+  return queryRow<Player>(db.prepare('SELECT * FROM players WHERE slug = ?').get(slug));
 }
 
 export function getGroups(): Group[] {

@@ -22,7 +22,16 @@
       <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Главная</a>
       <a href="/blog" class="<%= currentPath.startsWith('/blog') ? 'active' : '' %>">Новости</a>
       <a href="/vizitka" class="<%= currentPath === '/vizitka' ? 'active' : '' %>">Визитка</a>
-      <a href="/gruppy" class="<%= currentPath.startsWith('/gruppy') ? 'active' : '' %>">Группы</a>
+      <div class="nav__item nav__item--dropdown">
+        <a href="/gruppy" class="<%= currentPath.startsWith('/gruppy') ? 'active' : '' %>">Группы</a>
+        <% if (Array.isArray(navGroups) && navGroups.length) { %>
+          <div class="nav__submenu">
+            <% navGroups.forEach(function(group) { %>
+              <a href="/gruppy/<%= group.slug %>" class="<%= currentPath === '/gruppy/' + group.slug ? 'active' : '' %>"><%= group.name %></a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
       <a href="/raspisanie" class="<%= currentPath === '/raspisanie' ? 'active' : '' %>">Расписание</a>
       <a href="/vospitanniki" class="<%= currentPath.startsWith('/vospitanniki') ? 'active' : '' %>">Воспитанники</a>
       <a href="/foto" class="<%= currentPath.startsWith('/foto') || currentPath.startsWith('/arhiv') || currentPath.startsWith('/fotogalereya') ? 'active' : '' %>">Фото</a>

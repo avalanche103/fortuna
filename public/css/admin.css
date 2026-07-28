@@ -140,6 +140,19 @@ a { color: var(--blue); }
   color: var(--gray-600);
 }
 
+.news-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.6rem;
+}
+
+.news-editor-toolbar__btn {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
 .image-dropzone {
   border: 2px dashed var(--gray-200);
   border-radius: 8px;

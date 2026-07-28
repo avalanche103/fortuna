@@ -20,13 +20,15 @@
           <% news.forEach(function(n) { %>
             <tr>
               <td><%= n.published_at %></td>
-              <td><%= n.title %></td>
+              <td><%= n.title %><% if (n.category === 'nabor') { %> <span style="color:var(--orange);font-size:0.85rem;">· главная</span><% } %></td>
               <td><%= n.category %></td>
               <td class="btn-group">
                 <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
-                <form action="/admin/news/<%= n.id %>/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?')">
-                  <button type="submit" class="btn btn--danger">Удалить</button>
-                </form>
+                <% if (n.category !== 'nabor') { %>
+                  <form action="/admin/news/<%= n.id %>/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?')">
+                    <button type="submit" class="btn btn--danger">Удалить</button>
+                  </form>
+                <% } %>
               </td>
             </tr>
           <% }); %>

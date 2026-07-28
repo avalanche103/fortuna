@@ -139,7 +139,12 @@ router.get('/', requireAdmin, (_req: Request, res: Response) => {
 
 // --- News ---
 router.get('/news', requireAdmin, (_req, res) => {
-  const news = db.prepare('SELECT * FROM news ORDER BY published_at DESC').all();
+  const news = db
+    .prepare(
+      `SELECT * FROM news
+       ORDER BY CASE WHEN category = 'nabor' THEN 0 ELSE 1 END, published_at DESC`
+    )
+    .all();
   res.render('admin/news-list', { title: 'Новости', news });
 });
 
@@ -190,6 +195,13 @@ router.post('/news/:id', requireAdmin, (req, res) => {
 });
 
 router.post('/news/:id/delete', requireAdmin, (req, res) => {
+  const article = db.prepare('SELECT category FROM news WHERE id = ?').get(req.params.id) as
+    | { category: string }
+    | undefined;
+  if (article?.category === 'nabor') {
+    res.status(400).send('Новость про набор нельзя удалить — только редактировать');
+    return;
+  }
   db.prepare('DELETE FROM news WHERE id = ?').run(req.params.id);
   res.redirect('/admin/news');
 });

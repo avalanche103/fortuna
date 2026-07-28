@@ -4,7 +4,7 @@ import path from 'path';
 import { runMigrations } from './db';
 import { ensureSeedData } from './db/seed';
 import { UPLOAD_DIR, ensureDataDirs } from './paths';
-import { getSettings, splitPlayerName } from './services/content';
+import { getGruppyGroups, getSettings, splitPlayerName } from './services/content';
 import publicRoutes from './routes/public';
 import adminRoutes from './routes/admin';
 
@@ -39,6 +39,7 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.splitPlayerName = splitPlayerName;
   res.locals.settings = getSettings();
+  res.locals.navGroups = getGruppyGroups();
   next();
 });
 
