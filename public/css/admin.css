@@ -416,6 +416,12 @@ textarea.is-dragover {
 .schedule-slot summary::-webkit-details-marker { display: none; }
 .schedule-slot.has-value summary { font-weight: 600; color: var(--blue); }
 
+.schedule-slot.has-value summary {
+  background: color-mix(in srgb, var(--slot-color, #cbd5e1) 20%, var(--white));
+  border-radius: 6px;
+  padding: 0.25rem 0.35rem;
+}
+
 .schedule-slot__dot,
 .schedule-location-swatch {
   flex: 0 0 auto;

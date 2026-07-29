@@ -87,7 +87,7 @@
                       const location = slot && slot.location_id ? locations.find(function(item) { return item.id === slot.location_id; }) : null;
                     %>
                       <td data-day="<%= day %>" data-group="<%= group.id %>">
-                        <details class="schedule-slot <%= slot ? 'has-value' : '' %>">
+                        <details class="schedule-slot <%= slot ? 'has-value' : '' %>" style="--slot-color:<%= location ? location.color : '#cbd5e1' %>">
                           <summary>
                             <span class="schedule-slot__dot" style="--slot-color:<%= location ? location.color : '#cbd5e1' %>"></span>
                             <span class="schedule-slot__summary"><%= start ? start + (finish ? '–' + finish : '') : (slot ? 'Настроено' : '—') %></span>

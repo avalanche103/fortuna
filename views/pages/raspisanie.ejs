@@ -66,18 +66,12 @@
                   <% groups.forEach(function(g) {
                     const slot = dayEntries.find(e => e.group_id === g.id);
                   %>
-                    <td>
+                    <td class="schedule-cell <%= slot && slot.location_id ? 'has-session' : '' %>"
+                      <%= slot ? 'style="--location-color:' + (slot.location_color || '#6b7280') + '; background:' + (slot.location_color || '#6b7280') + '"' : '' %>>
                       <% if (slot) { %>
                         <article class="schedule-session">
                           <% if (slot.time_start) { %>
                             <strong class="schedule-session__time"><%= slot.time_start %><% if (slot.time_end) { %>–<%= slot.time_end %><% } %></strong>
-                          <% } %>
-                          <% if (slot.location_name || slot.location) { %>
-                            <span class="schedule-location" title="<%= slot.location_address || '' %>">
-                              <span class="schedule-location__dot" style="--location-color:<%= slot.location_color || '#6b7280' %>"></span>
-                              <span><%= slot.location_name || slot.location %></span>
-                            </span>
-                            <% if (slot.location_address) { %><small class="schedule-session__address"><%= slot.location_address %></small><% } %>
                           <% } %>
                           <% if (slot.note) { %><small class="schedule-session__note"><%= slot.note %></small><% } %>
                         </article>
@@ -96,17 +90,11 @@
               const date = new Date(Date.UTC(displayYear, displayMonth - 1, slot.day));
               const dateLabel = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', weekday: 'short', timeZone: 'UTC' }).format(date);
             %>
-              <article class="schedule-mobile-card">
+              <article class="schedule-mobile-card <%= slot.location_id ? 'has-session' : '' %>"
+                <%= slot.location_id ? 'style="--location-color:' + (slot.location_color || '#6b7280') + '; background:' + (slot.location_color || '#6b7280') + '"' : '' %>>
                 <div class="schedule-mobile-card__date"><%= dateLabel %></div>
                 <div>
                   <% if (slot.time_start) { %><strong><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong><% } %>
-                  <% if (slot.location_name || slot.location) { %>
-                    <span class="schedule-location">
-                      <span class="schedule-location__dot" style="--location-color:<%= slot.location_color || '#6b7280' %>"></span>
-                      <span><%= slot.location_name || slot.location %></span>
-                    </span>
-                    <% if (slot.location_address) { %><small><%= slot.location_address %></small><% } %>
-                  <% } %>
                   <% if (slot.note) { %><small><%= slot.note %></small><% } %>
                 </div>
               </article>

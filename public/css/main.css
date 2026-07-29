@@ -206,8 +206,8 @@ img { max-width: 100%; height: auto; display: block; }
   overflow: hidden;
   color: var(--white);
   background:
-    radial-gradient(circle at 16% 12%, rgba(45, 92, 196, 0.58), transparent 32%),
-    linear-gradient(118deg, var(--blue-dark) 0%, var(--blue) 58%, #173675 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.35) 100%),
+    url('/images/imgonlfgfggfh.jpg') center / cover no-repeat;
   border-bottom: 4px solid var(--red);
 }
 
@@ -250,13 +250,13 @@ img { max-width: 100%; height: auto; display: block; }
 
 .home-hero__emblem {
   position: relative;
-  width: min(100%, 330px);
+  width: min(100%, 300px);
   justify-self: end;
   padding: clamp(0.75rem, 1.8vw, 1.25rem);
-  background: var(--white);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
   border-radius: 28px;
-  box-shadow: 0 24px 70px rgba(4, 17, 49, 0.34);
+  box-shadow: none;
+  transform: translateX(0);
 }
 
 .home-hero__emblem::before {
@@ -268,13 +268,25 @@ img { max-width: 100%; height: auto; display: block; }
   height: 4px;
   background: var(--red);
   border-radius: 0 0 4px 4px;
+  display: none;
 }
 
-.home-hero__emblem img {
+.home-hero__logo {
   width: 100%;
   aspect-ratio: 1;
   object-fit: contain;
   border-radius: 18px;
+}
+
+.home-hero__ball {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+  width: 22%;
+  height: auto;
+  pointer-events: none;
 }
 
 .home-hero__content {
@@ -1303,7 +1315,7 @@ a.video-card:hover {
   border-collapse: separate;
   border-spacing: 0;
   background: var(--white);
-  font-size: 0.85rem;
+  font-size: 0.93rem;
 }
 
 .schedule-table th,
@@ -1337,6 +1349,10 @@ a.video-card:hover {
 
 .schedule-table tr:nth-child(even) td { background: var(--gray-50); }
 
+.schedule-table td.schedule-cell.has-session {
+  background: var(--location-color, #6b7280) !important;
+}
+
 .schedule-table .day-cell {
   position: sticky;
   left: 0;
@@ -1365,7 +1381,7 @@ a.video-card:hover {
   text-align: center;
   width: 100%;
 }
-.schedule-session__time { color: var(--blue-dark); font-size: 0.95rem; }
+.schedule-session__time { color: var(--blue-dark); font-size: 1.08rem; }
 
 .schedule-location {
   display: inline-flex;
@@ -1403,6 +1419,7 @@ a.video-card:hover {
 .schedule-session__note {
   padding-top: 0.3rem;
   border-top: 1px dashed var(--gray-200);
+  font-size: 0.88rem;
 }
 
 .schedule-empty {
@@ -1461,6 +1478,10 @@ a.video-card:hover {
     background: var(--white);
     box-shadow: var(--shadow);
     align-items: center;
+  }
+
+  .schedule-mobile-card.has-session {
+    background: var(--location-color, #6b7280) !important;
   }
   .schedule-mobile-card__date {
     color: var(--blue);
@@ -2113,6 +2134,7 @@ body.lightbox-open {
     width: min(54vw, 210px);
     justify-self: center;
     border-radius: 22px;
+    transform: none;
   }
 
   .home-hero__emblem img {
