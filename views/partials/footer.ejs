@@ -1,13 +1,79 @@
 <footer class="site-footer">
-  <div class="container site-footer__inner">
-    <div>
-      <div class="site-footer__brand">ФК «Фортуна»</div>
-      <p>г. Минск, ул. Гамарника, 30, офис 361</p>
-      <p><a href="tel:+375296611931">+375 29 661-19-31</a></p>
-    </div>
-    <div>
-      <p>Стадион «Зелёный луг»<br>ул. Гамарника, 9/1</p>
-      <p><a href="https://fcfortuna.by">fcfortuna.by</a></p>
+  <div class="container site-footer__grid">
+    <section class="site-footer__column">
+      <h2 class="site-footer__title">
+        <span class="site-footer__title-line">Футбольный клуб</span>
+        <span class="site-footer__title-line">«Фортуна» Минск</span>
+      </h2>
+      <p>Свидетельство на товарный знак № 30151.</p>
+      <p>Выдано Национальным центром интеллектуальной собственности 19.06.2009 г.</p>
+      <a class="site-footer__counter" href="https://top.mail.ru/jump?from=2185294" target="_blank" rel="noopener">
+        <img src="https://top-fwz1.mail.ru/counter?id=2185294;t=571;l=1" width="88" height="40" alt="Top.Mail.Ru">
+      </a>
+    </section>
+
+    <section class="site-footer__column">
+      <h2 class="site-footer__title">Контакты</h2>
+      <p><strong>Руководитель:</strong><br>Романовский Сергей Владимирович</p>
+      <p>
+        <strong>Телефоны:</strong><br>
+        <a href="tel:+375296611931">+375 29 661-19-31 (А1)</a>
+        <span class="site-footer__messengers">
+          <a href="viber://chat?number=%2B375296611931" aria-label="Viber"><img src="/images/social/viber.svg" alt="" width="20" height="20"></a>
+          <a href="https://wa.me/375296611931" target="_blank" rel="noopener" aria-label="WhatsApp"><img src="/images/social/whatsapp.svg" alt="" width="20" height="20"></a>
+        </span><br>
+        <a href="tel:+375293409823">+375 29 340-98-23 (А1)</a>
+        <span class="site-footer__messengers">
+          <a href="viber://chat?number=%2B375293409823" aria-label="Viber"><img src="/images/social/viber.svg" alt="" width="20" height="20"></a>
+          <a href="https://wa.me/375293409823" target="_blank" rel="noopener" aria-label="WhatsApp"><img src="/images/social/whatsapp.svg" alt="" width="20" height="20"></a>
+        </span>
+      </p>
+      <p><strong>E-mail:</strong> <a href="mailto:fcfortuna@mail.ru">fcfortuna@mail.ru</a></p>
+      <p>
+        <strong>Мы в социальных сетях:</strong><br>
+        <span class="site-footer__social">
+          <a href="https://www.instagram.com/fc_fortuna_minsk/" target="_blank" rel="noopener" aria-label="Instagram">
+            <img src="/images/social/instagram.svg" alt="" width="32" height="32">
+          </a>
+          <a href="https://www.facebook.com/people/Serguei-V-Romanovski/100002881819667" target="_blank" rel="noopener" aria-label="Facebook">
+            <img src="/images/social/facebook.svg" alt="" width="32" height="32">
+          </a>
+          <a href="http://vk.com/fcfortuna_by" target="_blank" rel="noopener" aria-label="VK">
+            <img src="/images/social/vk.svg" alt="" width="32" height="32">
+          </a>
+        </span>
+      </p>
+    </section>
+
+    <section class="site-footer__column">
+      <h2 class="site-footer__title">Группы</h2>
+      <ul class="site-footer__menu">
+        <% if (Array.isArray(navGroups) && navGroups.length) { %>
+          <% navGroups.forEach(function(group) { %>
+            <li><a href="/gruppy/<%= group.slug %>"><%= group.name %></a></li>
+          <% }); %>
+        <% } %>
+      </ul>
+    </section>
+
+    <section class="site-footer__column">
+      <h2 class="site-footer__title">Разделы сайта</h2>
+      <ul class="site-footer__menu">
+        <li><a href="/">Главная</a></li>
+        <li><a href="/vizitka">Визитка</a></li>
+        <li><a href="/gruppy">Группы</a></li>
+        <li><a href="/raspisanie">Расписание</a></li>
+        <li><a href="/vospitanniki">Воспитанники</a></li>
+        <li><a href="/foto">Фотогалерея</a></li>
+        <li><a href="/#fortuna-tv">FC FORTUNA TV</a></li>
+        <li><a href="/arhiv">Архив</a></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="site-footer__bottom">
+    <div class="container">
+      © 2000 FC Fortuna Minsk. Все права защищены.
     </div>
   </div>
 </footer>
