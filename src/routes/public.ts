@@ -183,15 +183,9 @@ router.get('/raspisanie', (req: Request, res: Response) => {
   const selectedGroup = groups.find((group) => group.slug === String(req.query.group ?? '')) ?? null;
   const allEntries = month ? getScheduleEntries(month.id) : [];
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const upcomingEntries = allEntries.filter((entry) => {
-    if (!month) return false;
-    const entryTime = new Date(month.year, month.month - 1, entry.day).getTime();
-    return entryTime >= todayStart;
-  });
   const entries = selectedGroup
-    ? upcomingEntries.filter((entry) => entry.group_id === selectedGroup.id)
-    : upcomingEntries;
+    ? allEntries.filter((entry) => entry.group_id === selectedGroup.id)
+    : allEntries;
   const visibleGroups = selectedGroup ? [selectedGroup] : groups;
   const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : new Date().getFullYear());
   const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : new Date().getMonth() + 1);
@@ -207,7 +201,14 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     allGroups: groups,
     selectedGroup,
     entries,
+    daysInMonth: new Date(displayYear, displayMonth, 0).getDate(),
+    today: {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+    },
     locations: getScheduleLocations(false),
+    scheduleTextColor,
     MONTH_NAMES,
   });
 });
@@ -332,5 +333,16 @@ router.get('/fotogalereya/:year', (req: Request, res: Response) => {
 router.get('/fotogalereya/:year/:slug', (req: Request, res: Response) => {
   res.redirect(301, `/foto/${req.params.year}/${req.params.slug}`);
 });
+
+function scheduleTextColor(color: string | null | undefined): '#102451' | '#ffffff' {
+  const match = /^#([0-9a-f]{6})$/i.exec(color ?? '');
+  if (!match) return '#ffffff';
+  const value = parseInt(match[1], 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 155 ? '#102451' : '#ffffff';
+}
 
 export default router;

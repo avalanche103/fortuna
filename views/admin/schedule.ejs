@@ -63,6 +63,13 @@
         <%
           const entryBySlot = new Map();
           entries.forEach(function(entry) { entryBySlot.set(entry.day + ':' + entry.group_id, entry); });
+          const textColor = function(color) {
+            const match = /^#([0-9a-f]{6})$/i.exec(color || '');
+            if (!match) return '#ffffff';
+            const value = parseInt(match[1], 16);
+            const brightness = (((value >> 16) & 255) * 299 + ((value >> 8) & 255) * 587 + (value & 255) * 114) / 1000;
+            return brightness > 155 ? '#102451' : '#ffffff';
+          };
         %>
         <form action="/admin/schedule/<%= month.year %>/<%= month.month %>" method="post" id="schedule-form">
           <div class="schedule-admin-scroll">
@@ -85,32 +92,24 @@
                       const start = slot && slot.time_start ? slot.time_start.replace('.', ':') : '';
                       const finish = slot && slot.time_end ? slot.time_end.replace('.', ':') : '';
                       const location = slot && slot.location_id ? locations.find(function(item) { return item.id === slot.location_id; }) : null;
+                      const color = location ? location.color : '#6b7280';
                     %>
-                      <td data-day="<%= day %>" data-group="<%= group.id %>">
-                        <details class="schedule-slot <%= slot ? 'has-value' : '' %>" style="--slot-color:<%= location ? location.color : '#cbd5e1' %>">
-                          <summary>
-                            <span class="schedule-slot__dot" style="--slot-color:<%= location ? location.color : '#cbd5e1' %>"></span>
-                            <span class="schedule-slot__summary"><%= start ? start + (finish ? '–' + finish : '') : (slot ? 'Настроено' : '—') %></span>
-                          </summary>
-                          <div class="schedule-slot__editor">
-                            <div class="schedule-slot__times">
-                              <input type="time" name="slots[d<%= day %>][g<%= group.id %>][time_start]" value="<%= start %>" aria-label="Начало">
-                              <span>—</span>
-                              <input type="time" name="slots[d<%= day %>][g<%= group.id %>][time_end]" value="<%= finish %>" aria-label="Окончание">
-                            </div>
-                            <select name="slots[d<%= day %>][g<%= group.id %>][location_id]" aria-label="Площадка">
-                              <option value="">Без площадки</option>
-                              <% locations.forEach(function(item) { %>
-                                <option value="<%= item.id %>" data-color="<%= item.color %>" <%= slot && slot.location_id === item.id ? 'selected' : '' %>>
-                                  <%= item.name %><%= item.is_active ? '' : ' (неактивна)' %>
-                                </option>
-                              <% }); %>
-                            </select>
-                            <input type="text" name="slots[d<%= day %>][g<%= group.id %>][note]" value="<%= slot && slot.note ? slot.note : '' %>" placeholder="Примечание" maxlength="200">
-                            <% if (day > 1) { %><button type="button" class="schedule-slot__copy">Скопировать предыдущий день</button><% } %>
-                            <button type="button" class="schedule-slot__clear">Очистить</button>
-                          </div>
-                        </details>
+                      <td class="schedule-admin-cell"
+                          data-day="<%= day %>"
+                          data-group="<%= group.id %>"
+                          data-date-label="<%= day %> <%= monthName.toLowerCase() %>, <%= weekday %>"
+                          data-group-label="<%= group.name %>">
+                        <input class="slot-start" type="hidden" name="slots[d<%= day %>][g<%= group.id %>][time_start]" value="<%= start %>">
+                        <input class="slot-end" type="hidden" name="slots[d<%= day %>][g<%= group.id %>][time_end]" value="<%= finish %>">
+                        <input class="slot-location" type="hidden" name="slots[d<%= day %>][g<%= group.id %>][location_id]" value="<%= slot && slot.location_id ? slot.location_id : '' %>">
+                        <input class="slot-note" type="hidden" name="slots[d<%= day %>][g<%= group.id %>][note]" value="<%= slot && slot.note ? slot.note : '' %>">
+                        <button type="button"
+                                class="schedule-slot-card <%= slot ? 'has-value' : '' %>"
+                                <% if (slot) { %>style="--slot-color:<%= color %>;--slot-text:<%= textColor(color) %>"<% } %>>
+                          <span class="schedule-slot-card__time"><%= start ? start + (finish ? '–' + finish : '') : (slot ? 'Настроено' : '+ Добавить') %></span>
+                          <span class="schedule-slot-card__location"><%= location ? location.name : (slot ? 'Без площадки' : '') %></span>
+                          <small class="schedule-slot-card__note"><%= slot && slot.note ? slot.note : '' %></small>
+                        </button>
                       </td>
                     <% }); %>
                   </tr>
@@ -118,6 +117,43 @@
               </tbody>
             </table>
           </div>
+
+          <dialog class="schedule-editor" id="schedule-editor" aria-labelledby="schedule-editor-title">
+            <div class="schedule-editor__heading">
+              <div>
+                <span id="schedule-editor-date"></span>
+                <h2 id="schedule-editor-title">Занятие</h2>
+              </div>
+              <button type="button" class="schedule-editor__close" aria-label="Закрыть">×</button>
+            </div>
+            <div class="schedule-editor__body">
+              <div class="schedule-editor__times">
+                <label>Начало<input type="time" id="editor-start"></label>
+                <span>—</span>
+                <label>Окончание<input type="time" id="editor-end"></label>
+              </div>
+              <label>Площадка
+                <select id="editor-location">
+                  <option value="" data-color="#6b7280">Без площадки</option>
+                  <% locations.forEach(function(item) { %>
+                    <option value="<%= item.id %>" data-color="<%= item.color %>">
+                      <%= item.name %><%= item.is_active ? '' : ' (неактивна)' %>
+                    </option>
+                  <% }); %>
+                </select>
+              </label>
+              <label>Примечание<input type="text" id="editor-note" maxlength="200" placeholder="Например, взять форму"></label>
+              <div class="schedule-editor__actions-secondary">
+                <button type="button" class="schedule-editor__copy">Скопировать предыдущий день</button>
+                <button type="button" class="schedule-editor__clear">Очистить занятие</button>
+              </div>
+            </div>
+            <div class="schedule-editor__footer">
+              <button type="button" class="btn btn--outline schedule-editor__cancel">Отмена</button>
+              <button type="button" class="btn btn--primary schedule-editor__apply">Готово</button>
+            </div>
+          </dialog>
+
           <div class="schedule-savebar">
             <span id="schedule-dirty">Изменений нет</span>
             <button class="btn btn--primary" type="submit">Сохранить расписание</button>
