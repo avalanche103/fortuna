@@ -81,7 +81,7 @@ bash deploy/gcp/create-vm.sh
 - **Заголовки:** Barlow Condensed Bold
 - **Текст:** Source Sans 3 Regular
 - **Кнопки:** Oswald SemiBold
-- **Цвета:** синий `#1a3a8f`, оранжевый `#f58220`
+- **Цвета:** синий `#1a3a8f`, коричневый `#900808`
 
 ## Админка
 

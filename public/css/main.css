@@ -3,8 +3,8 @@
   --blue-dark: #0f2558;
   --blue-light: #2d5cc4;
   --red: #d92132;
-  --orange: #f58220;
-  --orange-dark: #d96a0a;
+  --orange: #900808;
+  --orange-dark: #6a0606;
   --white: #ffffff;
   --gray-50: #f8f9fc;
   --gray-100: #eef1f7;
@@ -52,7 +52,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Banner ticker */
 .ticker {
-  background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+  background: var(--orange-dark);
   color: var(--white);
   overflow: hidden;
   white-space: nowrap;
@@ -118,21 +118,10 @@ img { max-width: 100%; height: auto; display: block; }
 .logo__text {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 22px;
+  font-size: clamp(14px, 1.35vw, 18px);
   text-transform: uppercase;
-  line-height: 1;
-}
-
-.header-tagline {
-  padding-left: clamp(1rem, 2vw, 1.75rem);
-  border-left: 1px solid var(--gray-200);
-  color: var(--orange);
-  font-family: 'Segoe Script', 'Brush Script MT', cursive;
-  font-size: 1.05rem;
-  font-weight: 600;
   line-height: 1.15;
   white-space: nowrap;
-  transform: rotate(-1.5deg);
 }
 
 .nav {
@@ -842,6 +831,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .widget--song .widget__title {
   margin-bottom: 0.85rem;
+  text-transform: uppercase;
 }
 
 .song-credits {
@@ -1958,7 +1948,7 @@ body.lightbox-open {
 
 /* Footer */
 .site-footer {
-  background: var(--blue-dark);
+  background: var(--orange-dark);
   color: rgba(255, 255, 255, 0.82);
   margin-top: 3rem;
   font-size: 0.92rem;
@@ -1966,12 +1956,12 @@ body.lightbox-open {
 }
 
 .site-footer a {
-  color: #7bbbe1;
+  color: #f0c8c8;
   text-decoration: none;
 }
 
 .site-footer a:hover {
-  color: var(--orange);
+  color: var(--white);
 }
 
 .site-footer__grid {
@@ -2013,7 +2003,7 @@ body.lightbox-open {
 }
 
 .site-footer__menu a:hover {
-  color: var(--orange);
+  color: var(--white);
 }
 
 .site-footer__counter {
@@ -2042,7 +2032,7 @@ body.lightbox-open {
 }
 
 .site-footer__bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
   padding: 0.9rem 0 1.1rem;
   text-align: center;
   font-family: var(--font-button);
@@ -2193,12 +2183,6 @@ body.lightbox-open {
   padding: 0.5rem;
 }
 
-@media (max-width: 1150px) {
-  .header-tagline {
-    display: none;
-  }
-}
-
 @media (max-width: 900px) {
   .home-hero__inner {
     min-height: 410px;
@@ -2322,6 +2306,7 @@ body.lightbox-open {
   }
 
   .logo__text {
-    font-size: 20px;
+    font-size: 14px;
+    white-space: normal;
   }
 }
