@@ -11,20 +11,47 @@
     <%- include('sidebar') %>
     <div class="admin-main">
       <div class="admin-header">
-        <h1><%= title %></h1>
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Используйте ↑ ↓, чтобы изменить порядок новостей на сайте.</p>
+        </div>
         <a href="/admin/news/new" class="btn btn--primary">+ Добавить</a>
       </div>
-      <table class="admin-table">
-        <thead><tr><th>Дата</th><th>Заголовок</th><th>Категория</th><th></th></tr></thead>
-        <tbody>
+      <% if (moved) { %>
+        <p class="news-order-status" data-kind="success">Порядок сохранён.</p>
+      <% } else if (moveError) { %>
+        <p class="news-order-status" data-kind="error">Не удалось изменить порядок.</p>
+      <% } %>
+      <table class="admin-table admin-table--sortable">
+        <thead><tr><th></th><th>Дата</th><th>Заголовок</th><th>Категория</th><th></th></tr></thead>
+        <tbody id="news-sortable">
           <% news.forEach(function(n) { %>
-            <tr>
+            <% const isNabor = n.category === 'nabor'; %>
+            <tr data-id="<%= n.id %>">
+              <td class="news-drag-cell">
+                <% if (isNabor) { %>
+                  <span class="news-drag-placeholder" aria-hidden="true">—</span>
+                <% } else { %>
+                  <div class="news-order-controls">
+                    <form action="/admin/news/move" method="post" class="news-move-form">
+                      <input type="hidden" name="id" value="<%= n.id %>">
+                      <input type="hidden" name="direction" value="up">
+                      <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                    </form>
+                    <form action="/admin/news/move" method="post" class="news-move-form">
+                      <input type="hidden" name="id" value="<%= n.id %>">
+                      <input type="hidden" name="direction" value="down">
+                      <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                    </form>
+                  </div>
+                <% } %>
+              </td>
               <td><%= n.published_at %></td>
-              <td><%= n.title %><% if (n.category === 'nabor') { %> <span style="color:var(--orange);font-size:0.85rem;">· главная</span><% } %></td>
+              <td><%= n.title %><% if (isNabor) { %> <span style="color:var(--orange);font-size:0.85rem;">· главная</span><% } %></td>
               <td><%= n.category %></td>
               <td class="btn-group">
                 <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
-                <% if (n.category !== 'nabor') { %>
+                <% if (!isNabor) { %>
                   <form action="/admin/news/<%= n.id %>/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?')">
                     <button type="submit" class="btn btn--danger">Удалить</button>
                   </form>

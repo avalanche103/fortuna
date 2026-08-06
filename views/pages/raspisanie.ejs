@@ -47,11 +47,6 @@
       <% } else {
         const entryBySlot = new Map();
         entries.forEach(function(entry) { entryBySlot.set(entry.day + ':' + entry.group_id, entry); });
-        const isPastDay = function(day) {
-          if (displayYear !== today.year) return displayYear < today.year;
-          if (displayMonth !== today.month) return displayMonth < today.month;
-          return day < today.day;
-        };
       %>
         <div class="schedule-table-wrap <%= selectedGroup ? 'has-group-filter' : 'schedule-table-wrap--desktop-only' %>">
           <table class="schedule-table">
@@ -62,11 +57,11 @@
               </tr>
             </thead>
             <tbody>
-              <% for (let day = 1; day <= daysInMonth; day += 1) {
+              <% for (let day = firstVisibleDay; day <= daysInMonth; day += 1) {
                 const date = new Date(Date.UTC(displayYear, displayMonth - 1, day));
                 const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date);
               %>
-                <tr class="<%= isPastDay(day) ? 'is-past' : '' %>">
+                <tr>
                   <th scope="row" class="day-cell"><strong><%= day %></strong><small><%= weekday %></small></th>
                   <% groups.forEach(function(group) {
                     const slot = entryBySlot.get(day + ':' + group.id);
@@ -100,7 +95,7 @@
               const dateLabel = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', weekday: 'short', timeZone: 'UTC' }).format(date);
               const color = slot.location_color || '#6b7280';
             %>
-              <article class="schedule-mobile-card <%= isPastDay(slot.day) ? 'is-past' : '' %>"
+              <article class="schedule-mobile-card"
                        style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>">
                 <div class="schedule-mobile-card__date"><%= dateLabel %></div>
                 <div class="schedule-mobile-card__content">

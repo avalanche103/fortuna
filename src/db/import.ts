@@ -15,7 +15,6 @@ import {
   parseNewsArticle,
   parseNewsListPage,
   parseSchedulePage,
-  parseTimeRange,
   parseVizitkaPage,
   parseYearLinks,
   GROUP_BY_TITLE,
@@ -93,6 +92,10 @@ function clearSections(sections: Set<string>): void {
   if (sections.has('vizitka')) {
     db.exec('DELETE FROM vizitka_coaches');
     db.exec('DELETE FROM vizitka_sections');
+  }
+  if (sections.has('schedule')) {
+    db.exec('DELETE FROM schedule_entries');
+    db.exec('DELETE FROM schedule_months');
   }
   if (sections.has('archive') || sections.has('gallery')) {
     if (sections.has('archive') && sections.has('gallery')) {
@@ -301,7 +304,7 @@ async function importGraduates(): Promise<void> {
 async function importSchedule(): Promise<void> {
   console.log('→ Расписание...');
   const html = await fetchPage(`${BASE}/raspisanie`);
-  const { year, month, groupNames, rows } = parseSchedulePage(html);
+  const { year, month, groupNames, rows, locations } = parseSchedulePage(html);
 
   db.prepare(
     `INSERT INTO schedule_months (year, month, title) VALUES (?, ?, ?)
@@ -311,18 +314,34 @@ async function importSchedule(): Promise<void> {
     db.prepare('SELECT id FROM schedule_months WHERE year = ? AND month = ?').get(year, month)
   )!.id;
 
+  const findLocationByName = db.prepare('SELECT id FROM schedule_locations WHERE name = ?');
+  const insertLocation = db.prepare(
+    `INSERT INTO schedule_locations (name, address, color, sort_order, is_active)
+     VALUES (?, ?, ?, ?, 1)
+     ON CONFLICT(name) DO UPDATE SET
+       address = excluded.address,
+       color = excluded.color`
+  );
+  const colorToLocationId = new Map<string, number>();
+  locations.forEach((location, index) => {
+    insertLocation.run(location.name, location.address, location.color, (index + 1) * 10);
+    const row = queryRow<{ id: number }>(findLocationByName.get(location.name));
+    if (row) colorToLocationId.set(location.color, row.id);
+  });
+
   const groupIds = groupNames.map((name) => {
     const slug = GROUP_BY_TITLE[name];
     return slug ? getGroupIdBySlug(slug) : undefined;
   });
 
   const insertEntry = db.prepare(
-    `INSERT INTO schedule_entries (month_id, day, weekday, group_id, time_start, time_end, note)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO schedule_entries (month_id, day, weekday, group_id, time_start, time_end, location_id, note)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(month_id, day, group_id) DO UPDATE SET
        weekday = excluded.weekday,
        time_start = excluded.time_start,
        time_end = excluded.time_end,
+       location_id = excluded.location_id,
        note = excluded.note`
   );
 
@@ -330,13 +349,23 @@ async function importSchedule(): Promise<void> {
   for (const row of rows) {
     row.slots.forEach((cell, index) => {
       if (!cell || !groupIds[index]) return;
-      const parsed = parseTimeRange(cell);
-      if (!parsed) return;
-      insertEntry.run(monthId, row.day, row.weekday, groupIds[index], parsed.start, parsed.end, parsed.note || null);
+      const isEmpty = !cell.timeStart && !cell.timeEnd && !cell.note && !cell.color;
+      if (isEmpty) return;
+      const locationId = cell.color ? colorToLocationId.get(cell.color) ?? null : null;
+      insertEntry.run(
+        monthId,
+        row.day,
+        row.weekday,
+        groupIds[index],
+        cell.timeStart,
+        cell.timeEnd,
+        locationId,
+        cell.note
+      );
       entries++;
     });
   }
-  console.log(`  ✓ ${entries} записей расписания (${month}/${year})`);
+  console.log(`  ✓ ${entries} записей расписания (${month}/${year}), ${locations.length} площадок`);
 }
 
 async function importVizitka(): Promise<void> {

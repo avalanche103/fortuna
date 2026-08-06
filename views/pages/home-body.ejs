@@ -38,88 +38,84 @@
 
 <div class="section">
   <div class="container">
-    <div class="dashboard-grid">
-      <div>
-        <div class="section__header">
-          <h2 class="section__title">Новости</h2>
-          <a href="/blog" class="btn btn--outline">Все новости</a>
-        </div>
-        <div class="news-grid news-grid--home">
-          <% if (recruitmentNews) { %>
-            <% const recruitmentUrl = '/blog/' + recruitmentNews.category + '/' + recruitmentNews.slug; %>
-            <% const recruitmentImg = getNewsCoverImage(recruitmentNews); %>
-            <% const recruitmentExcerpt = getNewsExcerpt(recruitmentNews, 180); %>
-            <article class="news-item news-item--compact">
-              <a href="<%= recruitmentUrl %>" class="news-item__thumb-link">
-                <% if (recruitmentImg) { %>
-                  <img class="news-item__cover news-item__cover--small" src="<%= recruitmentImg %>" alt="<%= recruitmentNews.title %>" loading="lazy">
-                <% } else { %>
-                  <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
-                <% } %>
-              </a>
-              <div class="news-item__body">
-                <div class="news-item__date"><%= todayDate %></div>
-                <h3 class="news-item__title">
-                  <a href="<%= recruitmentUrl %>"><%= recruitmentNews.title %></a>
-                </h3>
-                <p class="news-item__excerpt"><%= recruitmentExcerpt || '' %></p>
-              </div>
-            </article>
-          <% } else { %>
-            <article class="news-item news-item--compact">
-              <div class="news-item__body">
-                <div class="news-item__date"><%= todayDate %></div>
-                <h3 class="news-item__title">Новость про набор не настроена</h3>
-                <p class="news-item__excerpt">Создайте или отредактируйте новость в админке с категорией <strong>nabor</strong>.</p>
-              </div>
-            </article>
-          <% } %>
+    <div class="section__header">
+      <h2 class="section__title">Новости</h2>
+      <a href="/blog" class="btn btn--outline">Все новости</a>
+    </div>
+    <div class="news-grid news-grid--home">
+      <% if (recruitmentNews) { %>
+        <% const recruitmentUrl = '/blog/' + recruitmentNews.category + '/' + recruitmentNews.slug; %>
+        <% const recruitmentImg = getNewsCoverImage(recruitmentNews); %>
+        <% const recruitmentExcerpt = getNewsExcerpt(recruitmentNews, 180); %>
+        <article class="news-item news-item--compact">
+          <a href="<%= recruitmentUrl %>" class="news-item__thumb-link">
+            <% if (recruitmentImg) { %>
+              <img class="news-item__cover news-item__cover--small" src="<%= recruitmentImg %>" alt="<%= recruitmentNews.title %>" loading="lazy">
+            <% } else { %>
+              <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+            <% } %>
+          </a>
+          <div class="news-item__body">
+            <h3 class="news-item__title">
+              <a href="<%= recruitmentUrl %>"><%= recruitmentNews.title %></a>
+            </h3>
+            <p class="news-item__excerpt"><%= recruitmentExcerpt || '' %></p>
+            <a href="<%= recruitmentUrl %>" class="news-item__more">Смотреть дальше</a>
+          </div>
+        </article>
+      <% } else { %>
+        <article class="news-item news-item--compact">
+          <div class="news-item__body">
+            <h3 class="news-item__title">Новость про набор не настроена</h3>
+            <p class="news-item__excerpt">Создайте или отредактируйте новость в админке с категорией <strong>nabor</strong>.</p>
+          </div>
+        </article>
+      <% } %>
 
-          <% news.forEach(function(item) { %>
-            <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
-            <% const itemImg = getNewsCoverImage(item); %>
-            <% const excerpt = getNewsExcerpt(item, 180); %>
-            <article class="news-item news-item--compact">
-              <a href="<%= itemUrl %>" class="news-item__thumb-link">
-                <% if (itemImg) { %>
-                  <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
-                <% } else { %>
-                  <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
-                <% } %>
-              </a>
-              <div class="news-item__body">
-                <div class="news-item__date"><%= formatDateRu(item.published_at) %></div>
-                <h3 class="news-item__title">
-                  <a href="<%= itemUrl %>"><%= item.title %></a>
-                </h3>
-                <p class="news-item__excerpt"><%= excerpt || '' %></p>
-              </div>
-            </article>
-          <% }); %>
+      <% news.forEach(function(item) { %>
+        <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
+        <% const itemImg = getNewsCoverImage(item); %>
+        <% const excerpt = getNewsExcerpt(item, 180); %>
+        <article class="news-item news-item--compact">
+          <a href="<%= itemUrl %>" class="news-item__thumb-link">
+            <% if (itemImg) { %>
+              <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
+            <% } else { %>
+              <div class="news-item__cover news-item__cover--small news-item__cover--placeholder"></div>
+            <% } %>
+          </a>
+          <div class="news-item__body">
+            <h3 class="news-item__title">
+              <a href="<%= itemUrl %>"><%= item.title %></a>
+            </h3>
+            <p class="news-item__excerpt"><%= excerpt || '' %></p>
+            <a href="<%= itemUrl %>" class="news-item__more">Смотреть дальше</a>
+          </div>
+        </article>
+      <% }); %>
+    </div>
 
-        </div>
+    <div class="home-widgets">
+      <div class="widget widget--recruitment">
+        <h3 class="widget__title"><%= recruitment.title %></h3>
+        <% if (recruitment.subtitle) { %>
+          <p class="widget-recruitment__subtitle"><%= recruitment.subtitle %></p>
+        <% } %>
+        <% if (recruitment.teaser) { %>
+          <div class="widget-recruitment__body"><%= recruitment.teaser %></div>
+        <% } %>
+        <a href="/nabor" class="btn btn--primary widget-recruitment__btn">Почему именно к нам?</a>
+        <% if (recruitment.phones) { %>
+          <div class="widget-recruitment__phone"><%= recruitment.phones %></div>
+        <% } %>
       </div>
 
-      <aside class="home-aside">
-        <div class="widget widget--recruitment">
-          <h3 class="widget__title"><%= recruitment.title %></h3>
-          <% if (recruitment.subtitle) { %>
-            <p class="widget-recruitment__subtitle"><%= recruitment.subtitle %></p>
-          <% } %>
-          <% if (recruitment.teaser) { %>
-            <div class="widget-recruitment__body"><%= recruitment.teaser %></div>
-          <% } %>
-          <a href="/nabor" class="btn btn--primary widget-recruitment__btn">Почему именно к нам?</a>
-          <% if (recruitment.phones) { %>
-            <div class="widget-recruitment__phone"><%= recruitment.phones %></div>
-          <% } %>
-        </div>
-
-        <div class="widget">
-          <h3 class="widget__title">Именинники · <%= monthName %></h3>
-          <% if (birthdays.length === 0) { %>
-            <p style="color:var(--gray-600);font-size:0.9rem;">В этом месяце именинников нет.</p>
-          <% } else { %>
+      <div class="widget widget--birthdays">
+        <h3 class="widget__title">Именинники · <%= monthName %></h3>
+        <% if (birthdays.length === 0) { %>
+          <p class="widget__empty">В этом месяце именинников нет.</p>
+        <% } else { %>
+          <div class="widget__scroll">
             <ul class="birthday-list">
               <% birthdays.forEach(function(p) { %>
                 <li>
@@ -128,24 +124,24 @@
                 </li>
               <% }); %>
             </ul>
-          <% } %>
-        </div>
-
-        <div class="widget widget--song">
-          <h3 class="widget__title">Песня «ФК «Фортуна»</h3>
-          <dl class="song-credits">
-            <div><dt>Слова</dt><dd>Юрий Антипов</dd></div>
-            <div><dt>Музыка</dt><dd>Альберт Скороход</dd></div>
-            <div><dt>Исполняет</dt><dd>Василий Коновалов</dd></div>
-          </dl>
-          <div class="song-player">
-            <audio controls preload="metadata" controlslist="nodownload">
-              <source src="/audio/fortuna-song.mp3" type="audio/mpeg">
-              Ваш браузер не поддерживает воспроизведение аудио.
-            </audio>
           </div>
+        <% } %>
+      </div>
+
+      <div class="widget widget--song">
+        <h3 class="widget__title">Песня «ФК «Фортуна»</h3>
+        <dl class="song-credits">
+          <div><dt>Слова</dt><dd>Юрий Антипов</dd></div>
+          <div><dt>Музыка</dt><dd>Альберт Скороход</dd></div>
+          <div><dt>Исполняет</dt><dd>Василий Коновалов</dd></div>
+        </dl>
+        <div class="song-player">
+          <audio controls preload="metadata" controlslist="nodownload">
+            <source src="/audio/fortuna-song.mp3" type="audio/mpeg">
+            Ваш браузер не поддерживает воспроизведение аудио.
+          </audio>
         </div>
-      </aside>
+      </div>
     </div>
   </div>
 </div>

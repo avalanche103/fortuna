@@ -55,6 +55,9 @@
               <label class="form-check"><input type="checkbox" name="is_active" value="1" <%= location.is_active ? 'checked' : '' %>> Активна</label>
               <button class="btn btn--secondary" type="submit">Сохранить</button>
             </form>
+            <form action="/admin/schedule/locations/<%= location.id %>/delete" method="post" class="schedule-location-delete" onsubmit="return confirm('Удалить площадку «<%= location.name %>»? Занятия с этой площадкой останутся без привязки.')">
+              <button class="btn btn--danger" type="submit">Удалить</button>
+            </form>
           </section>
         <% }); %>
       </div>

@@ -4,6 +4,7 @@ import {
   GROUP_BY_TITLE,
   MONTH_BY_NAME,
   absUrl,
+  extractBackgroundColor,
   htmlToPlain,
   parseRuDateTime,
   parseTimeRange,
@@ -256,11 +257,59 @@ export function parseGraduatesPage(html: string): PlayerCard[] {
   return players;
 }
 
+export interface ScheduleCell {
+  timeStart: string | null;
+  timeEnd: string | null;
+  note: string | null;
+  color: string | null;
+}
+
+export interface ScheduleLocationLegend {
+  color: string;
+  name: string;
+  address: string;
+}
+
+function parseScheduleCell(html: string, style: string): ScheduleCell | null {
+  const text = htmlToPlain(html).replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  const color = extractBackgroundColor(style);
+  const timeMatch = text.match(/(\d{1,2}\.\d{2})-(\d{1,2}\.\d{2})/);
+  if (timeMatch) {
+    const note = text.replace(timeMatch[0], '').trim() || null;
+    return { timeStart: timeMatch[1], timeEnd: timeMatch[2], note, color };
+  }
+  return { timeStart: null, timeEnd: null, note: text, color };
+}
+
+function parseScheduleLocationLegend($: cheerio.CheerioAPI): ScheduleLocationLegend[] {
+  const locations: ScheduleLocationLegend[] = [];
+  $('p').each((_, paragraph) => {
+    const block = $(paragraph);
+    const swatch = block.find('span[style*="background-color"]').first();
+    if (!swatch.length) return;
+    const color = extractBackgroundColor(swatch.attr('style') ?? '');
+    if (!color) return;
+    const text = htmlToPlain(block.html() ?? '')
+      .replace(/^[-—\s]+/, '')
+      .trim()
+      .replace(/\.$/, '');
+    const match = text.match(/^(.+?)\s*\(([^)]+)\)$/);
+    if (match) {
+      locations.push({ color, name: match[1].trim(), address: match[2].trim() });
+      return;
+    }
+    locations.push({ color, name: text, address: '' });
+  });
+  return locations;
+}
+
 export function parseSchedulePage(html: string): {
   year: number;
   month: number;
   groupNames: string[];
-  rows: { day: number; weekday: string; slots: (string | null)[] }[];
+  rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[];
+  locations: ScheduleLocationLegend[];
 } {
   const $ = cheerio.load(html);
   const monthText = $('p strong').first().text().trim().toUpperCase();
@@ -274,7 +323,7 @@ export function parseSchedulePage(html: string): {
     groupNames.push($(th).text().replace(/\s+/g, ' ').trim());
   });
 
-  const rows: { day: number; weekday: string; slots: (string | null)[] }[] = [];
+  const rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[] = [];
   table.find('tr').slice(1).each((_, tr) => {
     const cells = $(tr).find('td');
     if (!cells.length) return;
@@ -283,10 +332,10 @@ export function parseSchedulePage(html: string): {
     const dayMatch = dayCell.match(/^(\d{1,2})/);
     if (!dayMatch) return;
     const weekdayMatch = dayCell.match(/\(([^)]+)\)/);
-    const slots: (string | null)[] = [];
+    const slots: (ScheduleCell | null)[] = [];
     cells.slice(1).each((__, td) => {
-      const html = $(td).html() ?? '';
-      slots.push(html.trim() ? html : null);
+      const cell = $(td);
+      slots.push(parseScheduleCell(cell.html() ?? '', cell.attr('style') ?? ''));
     });
 
     rows.push({
@@ -296,7 +345,7 @@ export function parseSchedulePage(html: string): {
     });
   });
 
-  return { year, month, groupNames, rows };
+  return { year, month, groupNames, rows, locations: parseScheduleLocationLegend($) };
 }
 
 export function parseVizitkaPage(html: string): {

@@ -26,6 +26,7 @@ export function runMigrations(): void {
 
 function applySchemaPatches(): void {
   patchScheduleSchema();
+  patchNewsSchema();
 
   const playerCols = db.prepare('PRAGMA table_info(players)').all() as { name: string }[];
   if (!playerCols.some((c) => c.name === 'is_chudo_master')) {
@@ -130,6 +131,22 @@ function patchScheduleSchema(): void {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_schedule_slot
     ON schedule_entries(month_id, day, group_id);
   `);
+}
+
+function patchNewsSchema(): void {
+  const newsCols = db.prepare('PRAGMA table_info(news)').all() as { name: string }[];
+  if (!newsCols.some((column) => column.name === 'sort_order')) {
+    db.exec('ALTER TABLE news ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+    const rows = queryRows<{ id: number }>(
+      db.prepare(
+        `SELECT id FROM news
+         WHERE category != 'nabor'
+         ORDER BY published_at DESC, id DESC`
+      ).all()
+    );
+    const update = db.prepare('UPDATE news SET sort_order = ? WHERE id = ?');
+    rows.forEach((row, index) => update.run(index, row.id));
+  }
 }
 
 function refreshNewsExcerpts(): void {

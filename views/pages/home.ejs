@@ -44,6 +44,34 @@
       initCarousel('video-carousel');
       initCarousel('graduates-carousel');
     })();
+
+    (function syncHomeWidgetHeights() {
+      const row = document.querySelector('.home-widgets');
+      if (!row) return;
+
+      const widgets = [...row.querySelectorAll('.widget')];
+      const reference = row.querySelector('.widget--recruitment');
+      if (!reference) return;
+
+      function applyHeights() {
+        widgets.forEach((widget) => {
+          widget.style.height = '';
+        });
+
+        if (window.matchMedia('(max-width: 900px)').matches) return;
+
+        const height = reference.offsetHeight;
+        widgets.forEach((widget) => {
+          widget.style.height = `${height}px`;
+        });
+      }
+
+      applyHeights();
+      window.addEventListener('resize', applyHeights);
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(applyHeights).observe(reference);
+      }
+    })();
   </script>
 </body>
 </html>

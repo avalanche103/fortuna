@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS news (
   excerpt TEXT,
   body TEXT NOT NULL,
   is_pinned INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   published_at TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))

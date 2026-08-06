@@ -6,6 +6,7 @@ export interface News {
   excerpt: string | null;
   body: string;
   is_pinned: number;
+  sort_order: number;
   published_at: string;
 }
 

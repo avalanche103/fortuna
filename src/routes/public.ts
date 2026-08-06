@@ -165,8 +165,23 @@ router.get('/gruppy/:slug', (req: Request, res: Response) => {
   });
 });
 
+function isPastScheduleMonth(year: number, month: number, now: Date): boolean {
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  return year < currentYear || (year === currentYear && month < currentMonth);
+}
+
+function getFirstVisibleScheduleDay(year: number, month: number, now: Date): number {
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (year === currentYear && month === currentMonth) return now.getDate();
+  return 1;
+}
+
 router.get('/raspisanie', (req: Request, res: Response) => {
-  const months = getScheduleMonths();
+  const now = new Date();
+  const allMonths = getScheduleMonths();
+  const months = allMonths.filter((item) => !isPastScheduleMonth(item.year, item.month, now));
   const groups = getScheduleGroups();
   const requestedYear = parseInt(String(req.query.year ?? ''), 10);
   const requestedMonth = parseInt(String(req.query.month ?? ''), 10);
@@ -177,18 +192,28 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     Number.isInteger(requestedMonth) &&
     requestedMonth >= 1 &&
     requestedMonth <= 12;
+  const selectedGroup = groups.find((group) => group.slug === String(req.query.group ?? '')) ?? null;
+
+  if (hasRequestedMonth && isPastScheduleMonth(requestedYear, requestedMonth, now)) {
+    const redirectParams = new URLSearchParams();
+    if (selectedGroup) redirectParams.set('group', selectedGroup.slug);
+    const query = redirectParams.toString();
+    res.redirect(query ? `/raspisanie?${query}` : '/raspisanie');
+    return;
+  }
+
   const month = hasRequestedMonth
     ? getScheduleMonth(requestedYear, requestedMonth)
     : getCurrentScheduleMonth() ?? months[0];
-  const selectedGroup = groups.find((group) => group.slug === String(req.query.group ?? '')) ?? null;
   const allEntries = month ? getScheduleEntries(month.id) : [];
-  const now = new Date();
+  const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : now.getFullYear());
+  const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : now.getMonth() + 1);
+  const firstVisibleDay = getFirstVisibleScheduleDay(displayYear, displayMonth, now);
+  const futureEntries = allEntries.filter((entry) => entry.day >= firstVisibleDay);
   const entries = selectedGroup
-    ? allEntries.filter((entry) => entry.group_id === selectedGroup.id)
-    : allEntries;
+    ? futureEntries.filter((entry) => entry.group_id === selectedGroup.id)
+    : futureEntries;
   const visibleGroups = selectedGroup ? [selectedGroup] : groups;
-  const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : new Date().getFullYear());
-  const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : new Date().getMonth() + 1);
 
   res.render('pages/raspisanie', {
     title: 'Расписание',
@@ -201,12 +226,8 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     allGroups: groups,
     selectedGroup,
     entries,
+    firstVisibleDay,
     daysInMonth: new Date(displayYear, displayMonth, 0).getDate(),
-    today: {
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: now.getDate(),
-    },
     locations: getScheduleLocations(false),
     scheduleTextColor,
     MONTH_NAMES,

@@ -4,13 +4,14 @@ import path from 'path';
 import fs from 'fs';
 import slugify from 'slugify';
 import db from '../db';
-import { queryRows } from '../db/helpers';
+import { queryRow, queryRows } from '../db/helpers';
 import { UPLOAD_DIR, ensureDataDirs } from '../paths';
 import { requireAdmin, verifyAdmin, getAdminId } from '../middleware/auth';
 import {
   copyScheduleMonth,
   createScheduleLocation,
   createScheduleMonth,
+  deleteScheduleLocation,
   getGroups,
   getRosterGroups,
   getScheduleEntries,
@@ -134,18 +135,104 @@ router.get('/', requireAdmin, (_req: Request, res: Response) => {
     schedule: (db.prepare('SELECT COUNT(*) as c FROM schedule_months').get() as { c: number }).c,
     videos: (db.prepare('SELECT COUNT(*) as c FROM videos').get() as { c: number }).c,
   };
-  res.render('admin/dashboard', { title: 'Админ-панель', stats });
+  res.render('admin/dashboard', { title: 'Панель', stats });
 });
 
 // --- News ---
-router.get('/news', requireAdmin, (_req, res) => {
+router.get('/news', requireAdmin, (req, res) => {
   const news = db
     .prepare(
       `SELECT * FROM news
-       ORDER BY CASE WHEN category = 'nabor' THEN 0 ELSE 1 END, published_at DESC`
+       ORDER BY CASE WHEN category = 'nabor' THEN 0 ELSE 1 END, sort_order ASC, published_at DESC`
     )
     .all();
-  res.render('admin/news-list', { title: 'Новости', news });
+  res.render('admin/news-list', {
+    title: 'Новости',
+    news,
+    moved: req.query.moved === '1',
+    moveError: req.query.error === 'move',
+  });
+});
+
+router.post('/news/move', requireAdmin, (req, res) => {
+  const id = parseInt(String(req.body.id ?? ''), 10);
+  const direction = req.body.direction === 'down' ? 'down' : 'up';
+  if (!Number.isFinite(id)) {
+    res.redirect('/admin/news?error=move');
+    return;
+  }
+
+  const current = queryRow<{ id: number; sort_order: number; category: string }>(
+    db.prepare('SELECT id, sort_order, category FROM news WHERE id = ?').get(id)
+  );
+  if (!current || current.category === 'nabor') {
+    res.redirect('/admin/news?error=move');
+    return;
+  }
+
+  const neighbor = queryRow<{ id: number; sort_order: number }>(
+    direction === 'up'
+      ? db
+          .prepare(
+            `SELECT id, sort_order FROM news
+             WHERE category != 'nabor' AND sort_order < ?
+             ORDER BY sort_order DESC LIMIT 1`
+          )
+          .get(current.sort_order)
+      : db
+          .prepare(
+            `SELECT id, sort_order FROM news
+             WHERE category != 'nabor' AND sort_order > ?
+             ORDER BY sort_order ASC LIMIT 1`
+          )
+          .get(current.sort_order)
+  );
+
+  if (!neighbor) {
+    res.redirect('/admin/news');
+    return;
+  }
+
+  const update = db.prepare('UPDATE news SET sort_order = ? WHERE id = ?');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    update.run(neighbor.sort_order, current.id);
+    update.run(current.sort_order, neighbor.id);
+    db.exec('COMMIT');
+    res.redirect('/admin/news?moved=1');
+  } catch {
+    db.exec('ROLLBACK');
+    res.redirect('/admin/news?error=move');
+  }
+});
+
+router.post('/news/reorder', requireAdmin, (req, res) => {
+  const raw = req.body.order;
+  const order =
+    typeof raw === 'string'
+      ? raw
+          .split(',')
+          .map((value) => parseInt(value.trim(), 10))
+          .filter(Number.isFinite)
+      : Array.isArray(raw)
+        ? raw.map((value) => parseInt(String(value), 10)).filter(Number.isFinite)
+        : [];
+
+  if (order.length === 0) {
+    res.status(400).json({ error: 'Пустой порядок' });
+    return;
+  }
+
+  const update = db.prepare('UPDATE news SET sort_order = ? WHERE id = ? AND category != ?');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    order.forEach((id, index) => update.run(index, id, 'nabor'));
+    db.exec('COMMIT');
+    res.json({ ok: true });
+  } catch {
+    db.exec('ROLLBACK');
+    res.status(500).json({ error: 'Не удалось сохранить порядок' });
+  }
 });
 
 router.get('/news/new', requireAdmin, (_req, res) => {
@@ -178,10 +265,15 @@ router.post('/news/upload-image', requireAdmin, (req, res) => {
 router.post('/news', requireAdmin, (req, res) => {
   const { title, category, excerpt, body, published_at, is_pinned } = req.body;
   const slug = slugify(title, { lower: true, strict: true, locale: 'ru' });
+  const newsCategory = category || 'novosti';
+  const minSort = queryRow<{ value: number }>(
+    db.prepare('SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM news WHERE category != ?').get('nabor')
+  );
+  const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
   db.prepare(
-    `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, published_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(title, slug, category || 'novosti', excerpt || null, body, is_pinned ? 1 : 0, published_at);
+    `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(title, slug, newsCategory, excerpt || null, body, is_pinned ? 1 : 0, sortOrder, published_at);
   res.redirect('/admin/news');
 });
 
@@ -364,6 +456,16 @@ router.post('/schedule/locations/:id', requireAdmin, (req, res) => {
   } catch {
     res.status(400).send('Площадка с таким названием уже существует');
   }
+});
+
+router.post('/schedule/locations/:id/delete', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!getScheduleLocation(id)) {
+    res.status(404).send('Площадка не найдена');
+    return;
+  }
+  deleteScheduleLocation(id);
+  res.redirect('/admin/schedule/locations');
 });
 
 function isValidYearMonth(year: number, month: number): boolean {

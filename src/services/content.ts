@@ -69,7 +69,9 @@ export function getRecruitmentContent(settings: SiteSettings = getSettings()): {
 }
 
 export function getLatestNews(limit = 8): News[] {
-  return queryRows<News>(db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ?').all(limit));
+  return queryRows<News>(
+    db.prepare('SELECT * FROM news ORDER BY sort_order ASC, published_at DESC LIMIT ?').all(limit)
+  );
 }
 
 export function getLatestNewsByCategory(category: string): News | undefined {
@@ -81,7 +83,9 @@ export function getLatestNewsByCategory(category: string): News | undefined {
 export function getLatestNewsExcludingCategory(limit = 8, category = ''): News[] {
   if (!category) return getLatestNews(limit);
   return queryRows<News>(
-    db.prepare('SELECT * FROM news WHERE category != ? ORDER BY published_at DESC LIMIT ?').all(category, limit)
+    db.prepare(
+      'SELECT * FROM news WHERE category != ? ORDER BY sort_order ASC, published_at DESC LIMIT ?'
+    ).all(category, limit)
   );
 }
 
@@ -126,7 +130,10 @@ export function getNewsList(
           .all(String(yearFilter), perPage, offset)
       )
     : queryRows<News>(
-        db.prepare('SELECT * FROM news ORDER BY published_at DESC LIMIT ? OFFSET ?').all(perPage, offset)
+        db.prepare('SELECT * FROM news ORDER BY sort_order ASC, published_at DESC LIMIT ? OFFSET ?').all(
+          perPage,
+          offset
+        )
       );
 
   return { items, total, pages: Math.max(1, Math.ceil(total / perPage)) };
@@ -302,6 +309,18 @@ export function updateScheduleLocation(id: number, input: Omit<ScheduleLocation,
      SET name = ?, address = ?, color = ?, sort_order = ?, is_active = ?
      WHERE id = ?`
   ).run(input.name, input.address, input.color, input.sort_order, input.is_active, id);
+}
+
+export function deleteScheduleLocation(id: number): void {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.prepare('UPDATE schedule_entries SET location_id = NULL WHERE location_id = ?').run(id);
+    db.prepare('DELETE FROM schedule_locations WHERE id = ?').run(id);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 export interface ScheduleSlotInput {

@@ -43,11 +43,20 @@ a { color: var(--blue); }
 }
 
 .admin-sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   font-family: var(--font-heading);
-  font-size: 1.3rem;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  text-transform: uppercase;
   padding: 0 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   margin-bottom: 1rem;
+}
+
+.admin-sidebar__brand-line {
+  display: block;
 }
 
 .admin-nav a {
@@ -121,6 +130,65 @@ a { color: var(--blue); }
   font-family: var(--font-button);
   font-size: 0.8rem;
   text-transform: uppercase;
+}
+
+.news-drag-cell {
+  width: 2.75rem;
+  padding-right: 0.35rem;
+}
+
+.news-order-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.news-move-form {
+  display: contents;
+}
+
+.news-move-up,
+.news-move-down {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.55rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gray-600);
+  cursor: pointer;
+  user-select: none;
+  font: inherit;
+  padding: 0;
+  line-height: 1;
+}
+
+.news-move-up:hover,
+.news-move-down:hover {
+  background: var(--gray-100);
+  color: var(--blue);
+}
+
+.news-drag-placeholder {
+  color: var(--gray-300);
+}
+
+.news-order-status {
+  min-height: 1.25rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--gray-600);
+}
+
+.news-order-status[data-kind="success"] {
+  color: #198754;
+}
+
+.news-order-status[data-kind="error"] {
+  color: #dc3545;
 }
 
 .form-card {
@@ -643,6 +711,7 @@ textarea.is-dragover {
   font-size: 0.75rem;
   font-weight: 600;
 }
+.schedule-location-delete { margin-top: 0.75rem; }
 
 @media (max-width: 768px) {
   .admin-layout { grid-template-columns: 1fr; }

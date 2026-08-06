@@ -109,3 +109,18 @@ export function parseTimeRange(cell: string): { start: string; end: string; note
   const note = text.replace(match[0], '').trim() || null;
   return { start: match[1], end: match[2], note: note ?? '' };
 }
+
+export function normalizeHexColor(color: string): string {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return color.trim().toLowerCase();
+  const hex = match[1];
+  if (hex.length === 3) {
+    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`.toLowerCase();
+  }
+  return `#${hex}`.toLowerCase();
+}
+
+export function extractBackgroundColor(style: string): string | null {
+  const match = /background-color:\s*(#[0-9a-f]{3,6})/i.exec(style);
+  return match ? normalizeHexColor(match[1]) : null;
+}
