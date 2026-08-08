@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | fcfortuna.by</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <%- include('../partials/ticker') %>
+  <%- include('../partials/header') %>
+  <main>
+    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
+    <div class="container section tv-page" style="padding-top:0;">
+      <% if (videos.length === 0) { %>
+        <p>Видео пока не добавлены.</p>
+      <% } else { %>
+        <div class="video-grid">
+          <% videos.forEach(function(v) { %>
+            <a href="<%= v.youtube_url %>" target="_blank" rel="noopener" class="card video-card">
+              <img class="video-card__thumb" src="<%= youtubeThumb(v.youtube_url) %>" alt="<%= v.title %>" loading="lazy">
+              <div class="video-card__title"><%= v.title %></div>
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>
+</body>
+</html>

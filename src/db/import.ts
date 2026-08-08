@@ -14,7 +14,8 @@ import {
   parseHomeVideos,
   parseNewsArticle,
   parseNewsListPage,
-  parseSchedulePage,
+  parseSchedulePages,
+  resolveScheduleLocationColor,
   parseVizitkaPage,
   parseYearLinks,
   GROUP_BY_TITLE,
@@ -304,15 +305,8 @@ async function importGraduates(): Promise<void> {
 async function importSchedule(): Promise<void> {
   console.log('→ Расписание...');
   const html = await fetchPage(`${BASE}/raspisanie`);
-  const { year, month, groupNames, rows, locations } = parseSchedulePage(html);
-
-  db.prepare(
-    `INSERT INTO schedule_months (year, month, title) VALUES (?, ?, ?)
-     ON CONFLICT(year, month) DO UPDATE SET title = excluded.title`
-  ).run(year, month, `${month}.${year}`);
-  const monthId = queryRow<{ id: number }>(
-    db.prepare('SELECT id FROM schedule_months WHERE year = ? AND month = ?').get(year, month)
-  )!.id;
+  const { year, months, locations } = parseSchedulePages(html);
+  const targetMonths = months.filter((item) => item.month === 8 || item.month === 9);
 
   const findLocationByName = db.prepare('SELECT id FROM schedule_locations WHERE name = ?');
   const insertLocation = db.prepare(
@@ -329,11 +323,19 @@ async function importSchedule(): Promise<void> {
     if (row) colorToLocationId.set(location.color, row.id);
   });
 
-  const groupIds = groupNames.map((name) => {
-    const slug = GROUP_BY_TITLE[name];
-    return slug ? getGroupIdBySlug(slug) : undefined;
-  });
+  // Cells for the manezh use a near-shade of the legend swatch.
+  const manezh = locations.find((location) => /манеж/i.test(location.name));
+  if (manezh) {
+    const row = queryRow<{ id: number }>(findLocationByName.get(manezh.name));
+    if (row) colorToLocationId.set('#169023', row.id);
+  }
 
+  const insertMonth = db.prepare(
+    `INSERT INTO schedule_months (year, month, title) VALUES (?, ?, ?)
+     ON CONFLICT(year, month) DO UPDATE SET title = excluded.title`
+  );
+  const getMonthId = db.prepare('SELECT id FROM schedule_months WHERE year = ? AND month = ?');
+  const clearMonthEntries = db.prepare('DELETE FROM schedule_entries WHERE month_id = ?');
   const insertEntry = db.prepare(
     `INSERT INTO schedule_entries (month_id, day, weekday, group_id, time_start, time_end, location_id, note)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -345,27 +347,46 @@ async function importSchedule(): Promise<void> {
        note = excluded.note`
   );
 
-  let entries = 0;
-  for (const row of rows) {
-    row.slots.forEach((cell, index) => {
-      if (!cell || !groupIds[index]) return;
-      const isEmpty = !cell.timeStart && !cell.timeEnd && !cell.note && !cell.color;
-      if (isEmpty) return;
-      const locationId = cell.color ? colorToLocationId.get(cell.color) ?? null : null;
-      insertEntry.run(
-        monthId,
-        row.day,
-        row.weekday,
-        groupIds[index],
-        cell.timeStart,
-        cell.timeEnd,
-        locationId,
-        cell.note
-      );
-      entries++;
-    });
+  if (!targetMonths.length) {
+    console.log('  ! август/сентябрь на старом сайте не найдены');
+    return;
   }
-  console.log(`  ✓ ${entries} записей расписания (${month}/${year}), ${locations.length} площадок`);
+
+  for (const schedule of targetMonths) {
+    insertMonth.run(year, schedule.month, `${schedule.month}.${year}`);
+    const monthId = queryRow<{ id: number }>(getMonthId.get(year, schedule.month))!.id;
+    clearMonthEntries.run(monthId);
+
+    const groupIds = schedule.groupNames.map((name) => {
+      const slug = GROUP_BY_TITLE[name];
+      return slug ? getGroupIdBySlug(slug) : undefined;
+    });
+
+    let entries = 0;
+    for (const row of schedule.rows) {
+      row.slots.forEach((cell, index) => {
+        if (!cell || !groupIds[index]) return;
+        const isEmpty = !cell.timeStart && !cell.timeEnd && !cell.note && !cell.color;
+        if (isEmpty) return;
+        const locationId = resolveScheduleLocationColor(cell.color, colorToLocationId);
+        insertEntry.run(
+          monthId,
+          row.day,
+          row.weekday,
+          groupIds[index],
+          cell.timeStart,
+          cell.timeEnd,
+          locationId,
+          cell.note
+        );
+        entries++;
+      });
+    }
+    console.log(
+      `  ✓ ${entries} записей расписания (${schedule.month}/${year}), групп: ${schedule.groupNames.length}`
+    );
+  }
+  console.log(`  ✓ площадок в легенде: ${locations.length}`);
 }
 
 async function importVizitka(): Promise<void> {

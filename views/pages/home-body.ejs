@@ -111,20 +111,59 @@
       </div>
 
       <div class="widget widget--birthdays">
-        <h3 class="widget__title">Именинники · <%= monthName %></h3>
+        <h3 class="widget__title">Наши именинники</h3>
+        <div class="birthday-festive" aria-hidden="true">
+          <svg class="birthday-festive__bouquet" viewBox="0 0 80 88" width="44" height="48" focusable="false">
+            <ellipse class="birthday-festive__bloom birthday-festive__bloom--a" cx="28" cy="28" rx="14" ry="16" />
+            <ellipse class="birthday-festive__bloom birthday-festive__bloom--b" cx="48" cy="22" rx="13" ry="15" />
+            <ellipse class="birthday-festive__bloom birthday-festive__bloom--c" cx="58" cy="38" rx="12" ry="14" />
+            <ellipse class="birthday-festive__bloom birthday-festive__bloom--d" cx="38" cy="40" rx="11" ry="13" />
+            <circle cx="28" cy="28" r="4" fill="#f7e08a" />
+            <circle cx="48" cy="22" r="3.5" fill="#f7e08a" />
+            <circle cx="58" cy="38" r="3.5" fill="#f7e08a" />
+            <path d="M36 48 C34 62 30 74 28 84 M42 50 C44 64 48 74 52 84 M40 48 C40 62 40 72 40 84" stroke="#2f6b3a" stroke-width="2.2" fill="none" stroke-linecap="round" />
+            <path d="M24 58 C32 54 48 54 56 60 C48 68 32 68 24 58Z" fill="#900808" />
+            <path d="M28 62 H52" stroke="#f7e08a" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <svg class="birthday-festive__cake" viewBox="0 0 88 78" width="48" height="42" focusable="false">
+            <g class="birthday-festive__candle">
+              <rect x="28" y="8" width="4" height="16" rx="1" fill="#f4d35e" />
+              <path class="birthday-festive__flame" d="M30 2 C33 6 33 9 30 11 C27 9 27 6 30 2Z" />
+            </g>
+            <g class="birthday-festive__candle">
+              <rect x="42" y="4" width="4" height="20" rx="1" fill="#f4d35e" />
+              <path class="birthday-festive__flame birthday-festive__flame--delay" d="M44 0 C47 4 47 7 44 9 C41 7 41 4 44 0Z" />
+            </g>
+            <g class="birthday-festive__candle">
+              <rect x="56" y="8" width="4" height="16" rx="1" fill="#f4d35e" />
+              <path class="birthday-festive__flame" d="M58 2 C61 6 61 9 58 11 C55 9 55 6 58 2Z" />
+            </g>
+            <rect x="14" y="24" width="60" height="16" rx="4" fill="#fff6ea" stroke="#d8b48a" stroke-width="1.5" />
+            <path d="M18 32 C24 28 30 36 36 32 C42 28 48 36 54 32 C60 28 66 34 70 30" stroke="#900808" stroke-width="2.5" fill="none" stroke-linecap="round" />
+            <rect x="10" y="40" width="68" height="22" rx="5" fill="#f3c98b" />
+            <rect x="10" y="56" width="68" height="14" rx="4" fill="#c47a3a" />
+            <circle cx="24" cy="50" r="2.2" fill="#900808" />
+            <circle cx="44" cy="48" r="2.2" fill="#1a3a8f" />
+            <circle cx="64" cy="51" r="2.2" fill="#900808" />
+          </svg>
+        </div>
+        <p class="birthday-wish">
+          Поздравляем с Днем рождения наших юных футболистов и шлем им
+          пожелания крепкого здоровья, радостей, удач и успехов в постижении тайн любимой игры!
+        </p>
         <% if (birthdays.length === 0) { %>
           <p class="widget__empty">В этом месяце именинников нет.</p>
         <% } else { %>
-          <div class="widget__scroll">
-            <ul class="birthday-list">
-              <% birthdays.forEach(function(p) { %>
-                <li>
-                  <span><%= p.name %></span>
-                  <span class="date"><%= p.birth_date %></span>
-                </li>
-              <% }); %>
-            </ul>
-          </div>
+          <% const todayMd = String(new Date().getDate()).padStart(2, '0') + '.' + String(new Date().getMonth() + 1).padStart(2, '0'); %>
+          <ul class="birthday-list">
+            <% birthdays.forEach(function(p) { %>
+              <% const isToday = p.birth_date && String(p.birth_date).slice(0, 5) === todayMd; %>
+              <li class="<%= isToday ? 'birthday-list__item--today' : '' %>">
+                <span><%= p.name %></span>
+                <span class="date"><%= p.birth_date %></span>
+              </li>
+            <% }); %>
+          </ul>
         <% } %>
       </div>
 
@@ -133,7 +172,7 @@
         <dl class="song-credits">
           <div><dt>Слова</dt><dd>Юрий Антипов</dd></div>
           <div><dt>Музыка</dt><dd>Альберт Скороход</dd></div>
-          <div><dt>Исполняет</dt><dd>Василий Коновалов</dd></div>
+          <div><dt>Исполняет</dt><dd>Альберт Скороход</dd></div>
         </dl>
         <div class="song-player">
           <audio controls preload="metadata" controlslist="nodownload">
@@ -150,6 +189,7 @@
   <div class="container">
     <div class="section__header">
       <h2 class="section__title">FC Fortuna TV</h2>
+      <a href="/tv" class="btn btn--outline">Все видео</a>
     </div>
     <% if (videos.length === 0) { %>
       <p>Видео пока не добавлены.</p>

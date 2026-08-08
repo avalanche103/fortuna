@@ -304,19 +304,13 @@ function parseScheduleLocationLegend($: cheerio.CheerioAPI): ScheduleLocationLeg
   return locations;
 }
 
-export function parseSchedulePage(html: string): {
-  year: number;
-  month: number;
+function parseScheduleTable(
+  $: cheerio.CheerioAPI,
+  table: cheerio.Cheerio<any>
+): {
   groupNames: string[];
   rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[];
-  locations: ScheduleLocationLegend[];
 } {
-  const $ = cheerio.load(html);
-  const monthText = $('p strong').first().text().trim().toUpperCase();
-  const month = MONTH_BY_NAME[monthText] ?? new Date().getMonth() + 1;
-  const year = new Date().getFullYear();
-
-  const table = $('table.shedule');
   const groupNames: string[] = [];
   table.find('tr').first().find('th').each((i, th) => {
     if (i === 0) return;
@@ -345,7 +339,80 @@ export function parseSchedulePage(html: string): {
     });
   });
 
-  return { year, month, groupNames, rows, locations: parseScheduleLocationLegend($) };
+  return { groupNames, rows };
+}
+
+/** Old site sometimes paints venue cells with a near-shade of the legend color. */
+const SCHEDULE_COLOR_ALIASES: Record<string, string> = {
+  '#169023': '#006400',
+};
+
+export function parseSchedulePage(html: string): {
+  year: number;
+  month: number;
+  groupNames: string[];
+  rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[];
+  locations: ScheduleLocationLegend[];
+} {
+  const pages = parseSchedulePages(html);
+  const first = pages.months[0] ?? {
+    month: new Date().getMonth() + 1,
+    groupNames: [] as string[],
+    rows: [] as { day: number; weekday: string; slots: (ScheduleCell | null)[] }[],
+  };
+  return {
+    year: pages.year,
+    month: first.month,
+    groupNames: first.groupNames,
+    rows: first.rows,
+    locations: pages.locations,
+  };
+}
+
+export function parseSchedulePages(html: string): {
+  year: number;
+  months: {
+    month: number;
+    groupNames: string[];
+    rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[];
+  }[];
+  locations: ScheduleLocationLegend[];
+} {
+  const $ = cheerio.load(html);
+  const year = new Date().getFullYear();
+  const months: {
+    month: number;
+    groupNames: string[];
+    rows: { day: number; weekday: string; slots: (ScheduleCell | null)[] }[];
+  }[] = [];
+
+  let currentMonth: number | null = null;
+  $('p, table.shedule').each((_, el) => {
+    const node = $(el);
+    if (node.is('p')) {
+      const monthText = node.find('strong').first().text().trim().toUpperCase();
+      if (MONTH_BY_NAME[monthText]) currentMonth = MONTH_BY_NAME[monthText];
+      return;
+    }
+    if (!currentMonth || !node.is('table.shedule')) return;
+    const parsed = parseScheduleTable($, node);
+    if (!parsed.groupNames.length) return;
+    months.push({ month: currentMonth, ...parsed });
+  });
+
+  return { year, months, locations: parseScheduleLocationLegend($) };
+}
+
+export function resolveScheduleLocationColor(
+  color: string | null,
+  colorToLocationId: Map<string, number>
+): number | null {
+  if (!color) return null;
+  return (
+    colorToLocationId.get(color) ??
+    colorToLocationId.get(SCHEDULE_COLOR_ALIASES[color] ?? '') ??
+    null
+  );
 }
 
 export function parseVizitkaPage(html: string): {

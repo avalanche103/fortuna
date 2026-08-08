@@ -45,8 +45,7 @@ const router = Router();
 
 router.get('/', (req: Request, res: Response) => {
   const settings = getSettings();
-  const birthdays = getBirthdaysThisMonth();
-  const monthName = MONTH_NAMES[new Date().getMonth()];
+  const birthdays = getBirthdaysThisMonth(5);
   const recruitmentNews = getLatestNewsByCategory('nabor');
 
   res.render('pages/home', {
@@ -55,7 +54,6 @@ router.get('/', (req: Request, res: Response) => {
     news: getLatestNewsExcludingCategory(8, 'nabor'),
     todayDate: formatDateRu(new Date().toISOString()),
     birthdays,
-    monthName,
     videos: getVideos(),
     graduates: getAllGraduates(),
     settings,
@@ -181,7 +179,9 @@ function getFirstVisibleScheduleDay(year: number, month: number, now: Date): num
 router.get('/raspisanie', (req: Request, res: Response) => {
   const now = new Date();
   const allMonths = getScheduleMonths();
-  const months = allMonths.filter((item) => !isPastScheduleMonth(item.year, item.month, now));
+  const months = allMonths
+    .filter((item) => !isPastScheduleMonth(item.year, item.month, now))
+    .sort((a, b) => a.year - b.year || a.month - b.month);
   const groups = getScheduleGroups();
   const requestedYear = parseInt(String(req.query.year ?? ''), 10);
   const requestedMonth = parseInt(String(req.query.month ?? ''), 10);
@@ -265,6 +265,14 @@ router.get('/player/:slug', (req: Request, res: Response) => {
     title: player.name,
     player,
     formatDateRu,
+  });
+});
+
+router.get('/tv', (_req: Request, res: Response) => {
+  res.render('pages/tv', {
+    title: 'FC Fortuna TV',
+    videos: getVideos(),
+    youtubeThumb,
   });
 });
 

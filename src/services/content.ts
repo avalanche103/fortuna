@@ -143,16 +143,47 @@ export function getNewsBySlug(slug: string): News | undefined {
   return queryRow<News>(db.prepare('SELECT * FROM news WHERE slug = ?').get(slug));
 }
 
-export function getBirthdaysThisMonth(): Player[] {
-  const month = String(new Date().getMonth() + 1).padStart(2, '0');
-  return queryRows<Player>(
-    db.prepare(
-      `SELECT * FROM players
-       WHERE is_graduate = 0 AND birth_date IS NOT NULL
-       AND substr(birth_date, 4, 2) = ?
-       ORDER BY substr(birth_date, 1, 2)`
-    ).all(month)
-  );
+export function getBirthdaysThisMonth(limit = 5): Player[] {
+  const now = new Date();
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const todayMonth = now.getMonth() + 1;
+  const todayDay = now.getDate();
+  const yesterdayMonth = yesterday.getMonth() + 1;
+  const yesterdayDay = yesterday.getDate();
+  const nextMonth = todayMonth === 12 ? 1 : todayMonth + 1;
+
+  const byMonth = (month: number) =>
+    queryRows<Player>(
+      db
+        .prepare(
+          `SELECT * FROM players
+           WHERE is_graduate = 0 AND birth_date IS NOT NULL
+             AND substr(birth_date, 4, 2) = ?
+           ORDER BY CAST(substr(birth_date, 1, 2) AS INTEGER)`
+        )
+        .all(String(month).padStart(2, '0'))
+    );
+
+  const dayOf = (player: Player) => parseInt(String(player.birth_date).slice(0, 2), 10) || 0;
+
+  const result: Player[] = [];
+  const seen = new Set<number>();
+  const pushAll = (players: Player[]) => {
+    for (const player of players) {
+      if (result.length >= limit) break;
+      if (seen.has(player.id)) continue;
+      seen.add(player.id);
+      result.push(player);
+    }
+  };
+
+  pushAll(byMonth(yesterdayMonth).filter((player) => dayOf(player) === yesterdayDay));
+  pushAll(byMonth(todayMonth).filter((player) => dayOf(player) >= todayDay));
+  if (result.length < limit) {
+    pushAll(byMonth(nextMonth));
+  }
+
+  return result;
 }
 
 export function getFeaturedGraduates(limit = 12): Player[] {
