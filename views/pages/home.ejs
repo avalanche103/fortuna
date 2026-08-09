@@ -6,13 +6,16 @@
   <title><%= title %> | fcfortuna.by</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
+<body class="page-home">
   <%- include('../partials/ticker') %>
   <%- include('../partials/header') %>
-  <main><%- include('home-body') %></main>
+  <main>
+    <%# Hero hidden — restore: include('../partials/home-hero-v1') %>
+    <%- include('home-body') %>
+  </main>
   <%- include('../partials/footer') %>
   <script>
     (function initHomeCarousels() {

@@ -1,41 +1,3 @@
-<section class="home-hero" aria-labelledby="home-hero-title" hidden>
-  <div class="container home-hero__inner">
-    <div class="home-hero__brand">
-      <div class="home-hero__emblem">
-        <img
-          class="home-hero__logo"
-          src="/images/logo-1.png"
-          alt="Эмблема футбольного клуба «Фортуна» Минск"
-          width="447"
-          height="447"
-          fetchpriority="high"
-        >
-        <img
-          class="home-hero__ball"
-          src="/images/ball.gif"
-          alt=""
-          aria-hidden="true"
-          loading="eager"
-        >
-      </div>
-      <div class="home-hero__text">
-        <p class="home-hero__club">
-          <span class="home-hero__club-line home-hero__club-line--top">Футбольный клуб</span>
-          <span class="home-hero__club-line home-hero__club-line--main">
-            <span class="home-hero__club-name">«Фортуна»</span>
-            <span class="home-hero__club-city">Минск</span>
-          </span>
-        </p>
-        <h1 id="home-hero-title" class="home-hero__title">
-          <span class="home-hero__quote-line home-hero__quote-line--1">Твой свет не дойдет до каждого,</span>
-          <span class="home-hero__quote-line home-hero__quote-line--2">Но он обязательно коснется тех,</span>
-          <span class="home-hero__quote-line home-hero__quote-line--3">Кто ищет именно его</span>
-        </h1>
-      </div>
-    </div>
-  </div>
-</section>
-
 <div class="section">
   <div class="container">
     <div class="section__header">
@@ -47,7 +9,7 @@
         <% const recruitmentUrl = '/blog/' + recruitmentNews.category + '/' + recruitmentNews.slug; %>
         <% const recruitmentImg = getNewsCoverImage(recruitmentNews); %>
         <% const recruitmentExcerpt = getNewsExcerpt(recruitmentNews, 180); %>
-        <article class="news-item news-item--compact">
+        <article class="news-item news-item--compact<%= recruitmentExcerpt ? '' : ' news-item--no-excerpt' %>">
           <a href="<%= recruitmentUrl %>" class="news-item__thumb-link">
             <% if (recruitmentImg) { %>
               <img class="news-item__cover news-item__cover--small" src="<%= recruitmentImg %>" alt="<%= recruitmentNews.title %>" loading="lazy">
@@ -59,7 +21,9 @@
             <h3 class="news-item__title">
               <a href="<%= recruitmentUrl %>"><%= recruitmentNews.title %></a>
             </h3>
-            <p class="news-item__excerpt"><%= recruitmentExcerpt || '' %></p>
+            <% if (recruitmentExcerpt) { %>
+              <p class="news-item__excerpt"><%= recruitmentExcerpt %></p>
+            <% } %>
             <a href="<%= recruitmentUrl %>" class="news-item__more">Смотреть дальше</a>
           </div>
         </article>
@@ -76,7 +40,7 @@
         <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
         <% const itemImg = getNewsCoverImage(item); %>
         <% const excerpt = getNewsExcerpt(item, 180); %>
-        <article class="news-item news-item--compact">
+        <article class="news-item news-item--compact<%= excerpt ? '' : ' news-item--no-excerpt' %>">
           <a href="<%= itemUrl %>" class="news-item__thumb-link">
             <% if (itemImg) { %>
               <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
@@ -88,7 +52,9 @@
             <h3 class="news-item__title">
               <a href="<%= itemUrl %>"><%= item.title %></a>
             </h3>
-            <p class="news-item__excerpt"><%= excerpt || '' %></p>
+            <% if (excerpt) { %>
+              <p class="news-item__excerpt"><%= excerpt %></p>
+            <% } %>
             <a href="<%= itemUrl %>" class="news-item__more">Смотреть дальше</a>
           </div>
         </article>

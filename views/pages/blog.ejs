@@ -6,7 +6,7 @@
   <title><%= title %> | fcfortuna.by</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
@@ -36,7 +36,7 @@
             <% const itemUrl = '/blog/' + item.category + '/' + item.slug; %>
             <% const itemImg = getNewsCoverImage(item); %>
             <% const excerpt = getNewsExcerpt(item, 180); %>
-            <article class="news-item news-item--compact">
+            <article class="news-item news-item--compact<%= excerpt ? '' : ' news-item--no-excerpt' %>">
               <a href="<%= itemUrl %>" class="news-item__thumb-link">
                 <% if (itemImg) { %>
                   <img class="news-item__cover news-item__cover--small" src="<%= itemImg %>" alt="<%= item.title %>" loading="lazy">
@@ -49,7 +49,9 @@
                 <h3 class="news-item__title">
                   <a href="<%= itemUrl %>"><%= item.title %></a>
                 </h3>
-                <p class="news-item__excerpt"><%= excerpt || '' %></p>
+                <% if (excerpt) { %>
+                  <p class="news-item__excerpt"><%= excerpt %></p>
+                <% } %>
               </div>
             </article>
           <% }); %>

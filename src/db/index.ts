@@ -93,9 +93,9 @@ function patchScheduleSchema(): void {
 
   const locations = [
     ['Стадион «Зеленый Луг»', 'ул. Гамарника, 9/1', '#86d993', 10],
-    ['Спорткомплекс РЦОП по гандболу', 'ул. Филимонова, 55/2', '#4f8fd8', 20],
-    ['Футбольный манеж', 'пр. Победителей, 20/2', '#177245', 30],
-    ['Спорткомплекс «Ампласт»', 'ул. Седых, 66', '#f2cf52', 40],
+    ['Спорткомплекс РЦОП по гандболу', 'ул. Филимонова, 55/2', '#f2cf52', 20],
+    ['Футбольный манеж', 'пр. Победителей, 20/2', '#4f8fd8', 30],
+    ['Спорткомплекс «Ампласт»', 'ул. Седых, 66', '#f7fd5f', 40],
   ] as const;
   const insertLocation = db.prepare(
     `INSERT INTO schedule_locations (name, address, color, sort_order)
@@ -103,6 +103,20 @@ function patchScheduleSchema(): void {
      ON CONFLICT(name) DO NOTHING`
   );
   for (const location of locations) insertLocation.run(...location);
+
+  // Keep venue colors in sync with the public schedule legend.
+  db.prepare(
+    `UPDATE schedule_locations SET color = '#86d993'
+     WHERE name LIKE '%Гамарник%' OR address LIKE '%Гамарник%'`
+  ).run();
+  db.prepare(
+    `UPDATE schedule_locations SET color = '#f2cf52'
+     WHERE name LIKE '%Филимонов%' OR address LIKE '%Филимонов%'`
+  ).run();
+  db.prepare(
+    `UPDATE schedule_locations SET color = '#4f8fd8'
+     WHERE name LIKE '%манеж%' OR name LIKE '%Манеж%'`
+  ).run();
 
   const legacyLocations = queryRows<{ location: string }>(
     db.prepare(

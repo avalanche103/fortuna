@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | fcfortuna.by</title>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
@@ -36,11 +36,13 @@
         </div>
       <% } %>
       <ul class="group-players-list">
-        <% players.forEach(function(p) { %>
+        <% players.forEach(function(p, index) { %>
           <li class="group-players-list__item">
             <% const parts = splitPlayerName(p.name || ''); %>
             <% const surname = formatWord(parts.surname); %>
             <% const firstName = formatWords(parts.firstName); %>
+            <% const playerNumber = p.number != null ? p.number : (index + 1); %>
+            <span class="group-players-list__num"><%= playerNumber %></span>
             <a class="group-players-list__name group-players-list__link" href="/player/<%= p.slug %>">
               <%= surname %><% if (firstName) { %> <%= firstName %><% } %>
             </a>
