@@ -274,6 +274,8 @@ img { max-width: 100%; height: auto; display: block; }
   padding: 0;
   text-align: center;
   color: var(--blue);
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .home-hero__club-line {

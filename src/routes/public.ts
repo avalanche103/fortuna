@@ -12,12 +12,10 @@ import {
   getArchiveYears,
   getBirthdaysThisMonth,
   getCurrentScheduleMonth,
-  getFeaturedGraduates,
   getGroupBySlug,
   getScheduleGroups,
   getGraduateBySlug,
   getPlayerBySlug,
-  getLatestNews,
   getLatestNewsByCategory,
   getLatestNewsExcludingCategory,
   getNewsBySlug,
@@ -37,19 +35,51 @@ import {
   getNewsExcerpt,
   getNewsCoverImage,
   getNewsArticleBody,
-  youtubeEmbedUrl,
   youtubeThumb,
 } from '../services/content';
+import { getSitemapEntries, renderSitemapXml } from '../services/sitemap';
+import {
+  PAGE_DESCRIPTIONS,
+  newsArticleJsonLd,
+  sportsTeamJsonLd,
+  truncateMeta,
+} from '../utils/seo';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/robots.txt', (_req: Request, res: Response) => {
+  const base = res.locals.siteUrl as string;
+  res.type('text/plain').send(
+    [
+      'User-agent: *',
+      'Allow: /',
+      'Disallow: /admin',
+      'Disallow: /admin/',
+      'Disallow: /api/',
+      '',
+      `Sitemap: ${base}/sitemap.xml`,
+      '',
+    ].join('\n')
+  );
+});
+
+router.get('/sitemap.xml', (_req: Request, res: Response) => {
+  const xml = renderSitemapXml(res.locals.siteUrl as string, getSitemapEntries());
+  res.type('application/xml').send(xml);
+});
+
+router.get('/', (_req: Request, res: Response) => {
   const settings = getSettings();
   const birthdays = getBirthdaysThisMonth(5);
   const recruitmentNews = getLatestNewsByCategory('nabor');
+  const siteUrl = res.locals.siteUrl as string;
 
   res.render('pages/home', {
     title: 'Футбольный клуб Фортуна',
+    description: PAGE_DESCRIPTIONS.home,
+    ogUrl: '/',
+    ogImage: '/images/og-share.jpg',
+    jsonLd: sportsTeamJsonLd(siteUrl),
     recruitmentNews,
     news: getLatestNewsExcludingCategory(8, 'nabor'),
     todayDate: formatDateRu(new Date().toISOString()),
@@ -70,6 +100,11 @@ router.get('/nabor', (_req: Request, res: Response) => {
   const recruitment = getRecruitmentContent(settings);
   res.render('pages/nabor', {
     title: 'Набор',
+    description: truncateMeta(
+      [recruitment.title, recruitment.subtitle, recruitment.teaser].filter(Boolean).join('. ') ||
+        PAGE_DESCRIPTIONS.nabor
+    ),
+    ogUrl: '/nabor',
     settings,
     recruitment,
   });
@@ -82,8 +117,33 @@ router.get('/blog', (req: Request, res: Response) => {
   const { items, pages } = getNewsList(page, 18, year);
   const years = getNewsYears();
 
+  const params = new URLSearchParams();
+  if (year) params.set('year', String(year));
+  if (page > 1) params.set('page', String(page));
+  const query = params.toString();
+  const ogUrl = query ? `/blog?${query}` : '/blog';
+
+  const olderPage = year ? page - 1 : page + 1;
+  const newerPage = year ? page + 1 : page - 1;
+  const canGoOlder = year ? page > 1 : page < pages;
+  const canGoNewer = year ? page < pages : page > 1;
+
+  function blogHref(targetPage: number, targetYear: number | null) {
+    const p = new URLSearchParams();
+    if (targetYear) p.set('year', String(targetYear));
+    if (targetPage > 1) p.set('page', String(targetPage));
+    const q = p.toString();
+    return q ? `/blog?${q}` : '/blog';
+  }
+
   res.render('pages/blog', {
     title: year ? `Новости · ${year}` : 'Новости',
+    description: year
+      ? truncateMeta(`Новости ФК «Фортуна» Минск за ${year} год.`)
+      : PAGE_DESCRIPTIONS.blog,
+    ogUrl,
+    prevUrl: canGoNewer ? blogHref(newerPage, year) : null,
+    nextUrl: canGoOlder ? blogHref(olderPage, year) : null,
     news: items,
     page,
     pages,
@@ -95,41 +155,67 @@ router.get('/blog', (req: Request, res: Response) => {
   });
 });
 
-router.get('/blog/:category/:slug', (req: Request, res: Response) => {
-  const article = getNewsBySlug(req.params.slug);
-  if (!article) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
-    return;
-  }
+function renderNewsDetail(_req: Request, res: Response, article: NonNullable<ReturnType<typeof getNewsBySlug>>) {
+  const coverImage = getNewsCoverImage(article);
+  const excerpt = getNewsExcerpt(article, 160);
+  const category = article.category || 'novosti';
+  const ogUrl = `/blog/${category}/${article.slug}`;
+  const siteUrl = res.locals.siteUrl as string;
 
   res.render('pages/news-detail', {
     title: article.title,
+    description: truncateMeta(excerpt || article.title),
+    ogUrl,
+    ogImage: coverImage || '/images/og-share.jpg',
+    ogType: 'article',
+    articlePublishedAt: article.published_at,
+    jsonLd: newsArticleJsonLd({
+      siteUrl,
+      title: article.title,
+      description: excerpt || article.title,
+      url: ogUrl,
+      image: coverImage,
+      publishedAt: article.published_at,
+    }),
     article,
-    coverImage: getNewsCoverImage(article),
+    coverImage,
     bodyHtml: getNewsArticleBody(article),
     formatDateRu,
   });
+}
+
+router.get('/blog/:category/:slug', (req: Request, res: Response) => {
+  const article = getNewsBySlug(req.params.slug);
+  if (!article) {
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
+    return;
+  }
+
+  const canonicalCategory = article.category || 'novosti';
+  if (req.params.category !== canonicalCategory) {
+    res.redirect(301, `/blog/${canonicalCategory}/${article.slug}`);
+    return;
+  }
+
+  renderNewsDetail(req, res, article);
 });
 
 router.get('/blog/:slug', (req: Request, res: Response) => {
   const article = getNewsBySlug(req.params.slug);
   if (!article) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
-  res.render('pages/news-detail', {
-    title: article.title,
-    article,
-    coverImage: getNewsCoverImage(article),
-    bodyHtml: getNewsArticleBody(article),
-    formatDateRu,
-  });
+  const category = article.category || 'novosti';
+  res.redirect(301, `/blog/${category}/${article.slug}`);
 });
 
 router.get('/vizitka', (_req: Request, res: Response) => {
   res.render('pages/vizitka', {
     title: 'Визитка',
+    description: PAGE_DESCRIPTIONS.vizitka,
+    ogUrl: '/vizitka',
     sections: getVizitkaSections(),
     coaches: getVizitkaCoaches(),
   });
@@ -144,6 +230,8 @@ router.get('/gruppy', (_req: Request, res: Response) => {
 
   res.render('pages/gruppy', {
     title: 'Группы',
+    description: PAGE_DESCRIPTIONS.gruppy,
+    ogUrl: '/gruppy',
     groups,
     playersByGroup,
   });
@@ -152,12 +240,17 @@ router.get('/gruppy', (_req: Request, res: Response) => {
 router.get('/gruppy/:slug', (req: Request, res: Response) => {
   const group = getGroupBySlug(req.params.slug);
   if (!group) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   res.render('pages/gruppy-detail', {
     title: group.name,
+    description: truncateMeta(
+      `Группа ${group.name}${group.birth_years ? ` (${group.birth_years})` : ''} — ФК «Фортуна» Минск.`
+    ),
+    ogUrl: `/gruppy/${group.slug}`,
+    ogImage: group.photo || '/images/og-share.jpg',
     group,
     players: getGruppyGroupPlayers(group),
   });
@@ -215,8 +308,15 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     : futureEntries;
   const visibleGroups = selectedGroup ? [selectedGroup] : groups;
 
+  const monthLabel = `${MONTH_NAMES[displayMonth - 1]} ${displayYear}`;
   res.render('pages/raspisanie', {
     title: 'Расписание',
+    description: truncateMeta(
+      selectedGroup
+        ? `Расписание группы ${selectedGroup.name} — ${monthLabel}, ФК «Фортуна» Минск.`
+        : `Расписание тренировок на ${monthLabel} — ФК «Фортуна» Минск.`
+    ),
+    ogUrl: '/raspisanie',
     month,
     monthName: MONTH_NAMES[displayMonth - 1],
     displayYear,
@@ -237,6 +337,8 @@ router.get('/raspisanie', (req: Request, res: Response) => {
 router.get('/vospitanniki', (_req: Request, res: Response) => {
   res.render('pages/vospitanniki', {
     title: 'Воспитанники',
+    description: PAGE_DESCRIPTIONS.vospitanniki,
+    ogUrl: '/vospitanniki',
     graduates: getAllGraduates(),
   });
 });
@@ -244,12 +346,15 @@ router.get('/vospitanniki', (_req: Request, res: Response) => {
 router.get('/vospitanniki/:slug', (req: Request, res: Response) => {
   const graduate = getGraduateBySlug(req.params.slug);
   if (!graduate) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   res.render('pages/vospitannik-detail', {
     title: graduate.name,
+    description: truncateMeta(`Воспитанник ${graduate.name} — ФК «Фортуна» Минск.`),
+    ogUrl: `/vospitanniki/${graduate.slug}`,
+    ogImage: graduate.photo || '/images/og-share.jpg',
     graduate,
   });
 });
@@ -257,12 +362,15 @@ router.get('/vospitanniki/:slug', (req: Request, res: Response) => {
 router.get('/player/:slug', (req: Request, res: Response) => {
   const player = getPlayerBySlug(req.params.slug);
   if (!player) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   res.render('pages/player-detail', {
     title: player.name,
+    description: truncateMeta(`Игрок ${player.name} — ФК «Фортуна» Минск.`),
+    ogUrl: `/player/${player.slug}`,
+    ogImage: player.photo || '/images/og-share.jpg',
     player,
     formatDateRu,
   });
@@ -271,6 +379,8 @@ router.get('/player/:slug', (req: Request, res: Response) => {
 router.get('/tv', (_req: Request, res: Response) => {
   res.render('pages/tv', {
     title: 'FC Fortuna TV',
+    description: PAGE_DESCRIPTIONS.tv,
+    ogUrl: '/tv',
     videos: getVideos(),
     youtubeThumb,
   });
@@ -279,6 +389,8 @@ router.get('/tv', (_req: Request, res: Response) => {
 router.get('/foto', (_req: Request, res: Response) => {
   res.render('pages/foto', {
     title: 'Фото',
+    description: PAGE_DESCRIPTIONS.foto,
+    ogUrl: '/foto',
     years: getArchiveYears('gallery'),
   });
 });
@@ -301,12 +413,14 @@ router.get('/foto/:year', (req: Request, res: Response) => {
   const year = parseInt(req.params.year, 10);
   const archiveYear = getArchiveYear(year, 'gallery');
   if (!archiveYear) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   res.render('pages/foto-year', {
     title: `Фото · ${year}`,
+    description: truncateMeta(`Фотогалерея ${year} года — ФК «Фортуна» Минск.`),
+    ogUrl: `/foto/${year}`,
     year,
     items: getArchiveItems(archiveYear.id),
   });
@@ -316,18 +430,21 @@ router.get('/foto/:year/:slug', (req: Request, res: Response) => {
   const year = parseInt(req.params.year, 10);
   const archiveYear = getArchiveYear(year, 'gallery');
   if (!archiveYear) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   const album = getArchiveItem(archiveYear.id, req.params.slug);
   if (!album) {
-    res.status(404).render('pages/404', { title: 'Страница не найдена' });
+    res.status(404).render('pages/404', { title: 'Страница не найдена', robots: 'noindex, follow' });
     return;
   }
 
   res.render('pages/foto-album', {
     title: album.title,
+    description: truncateMeta(`${album.title} — фотогалерея ФК «Фортуна» Минск.`),
+    ogUrl: `/foto/${year}/${album.slug}`,
+    ogImage: album.cover_image || '/images/og-share.jpg',
     year,
     album,
     photos: getArchivePhotos(album.id),

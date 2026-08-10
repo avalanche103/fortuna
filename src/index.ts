@@ -36,6 +36,8 @@ app.use(
 );
 
 app.use((req, res, next) => {
+  const host = req.get('host') || 'localhost:3000';
+  res.locals.siteUrl = (process.env.SITE_URL || `${req.protocol}://${host}`).replace(/\/$/, '');
   res.locals.currentPath = req.path;
   res.locals.splitPlayerName = splitPlayerName;
   res.locals.settings = getSettings();
@@ -44,10 +46,17 @@ app.use((req, res, next) => {
 });
 
 app.use('/', publicRoutes);
+app.use('/admin', (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
 app.use('/admin', adminRoutes);
 
 app.use((_req, res) => {
-  res.status(404).render('pages/404', { title: 'Страница не найдена' });
+  res.status(404).render('pages/404', {
+    title: 'Страница не найдена',
+    robots: 'noindex, follow',
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

@@ -1,0 +1,62 @@
+<%
+  const pageTitle = (typeof title !== 'undefined' && title)
+    ? `${title} | fcfortuna.by`
+    : 'ФК «Фортуна» Минск | fcfortuna.by';
+  const defaultDescription = 'Футбольный клуб «Фортуна» Минск — набор мальчиков, расписание тренировок, новости и воспитанники.';
+  const pageDescription = String(
+    (typeof description !== 'undefined' && description)
+      ? description
+      : defaultDescription
+  ).replace(/\s+/g, ' ').trim().slice(0, 160);
+  const rawImage = (typeof ogImage !== 'undefined' && ogImage)
+    ? ogImage
+    : '/images/og-share.jpg';
+  const pageImage = /^https?:\/\//i.test(String(rawImage))
+    ? String(rawImage)
+    : `${siteUrl}${String(rawImage).startsWith('/') ? rawImage : `/${rawImage}`}`;
+  const canonicalPath = (typeof ogUrl !== 'undefined' && ogUrl)
+    ? String(ogUrl)
+    : `${typeof currentPath !== 'undefined' ? currentPath : '/'}`;
+  const pageUrl = /^https?:\/\//i.test(canonicalPath)
+    ? canonicalPath
+    : `${siteUrl}${canonicalPath.startsWith('/') ? canonicalPath : `/${canonicalPath}`}`;
+  const pageRobots = (typeof robots !== 'undefined' && robots)
+    ? String(robots)
+    : 'index, follow';
+  const pageOgType = (typeof ogType !== 'undefined' && ogType) ? String(ogType) : 'website';
+  const esc = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+%>
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="<%= esc(pageDescription) %>">
+<meta name="robots" content="<%= esc(pageRobots) %>">
+<link rel="canonical" href="<%= esc(pageUrl) %>">
+<meta property="og:type" content="<%= esc(pageOgType) %>">
+<meta property="og:site_name" content="ФК «Фортуна» Минск">
+<meta property="og:title" content="<%= esc(pageTitle) %>">
+<meta property="og:description" content="<%= esc(pageDescription) %>">
+<meta property="og:url" content="<%= esc(pageUrl) %>">
+<meta property="og:image" content="<%= esc(pageImage) %>">
+<meta property="og:image:alt" content="ФК «Фортуна» Минск">
+<meta property="og:locale" content="ru_RU">
+<% if (pageOgType === 'article' && typeof articlePublishedAt !== 'undefined' && articlePublishedAt) { %>
+<meta property="article:published_time" content="<%= esc(articlePublishedAt) %>">
+<% } %>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<%= esc(pageTitle) %>">
+<meta name="twitter:description" content="<%= esc(pageDescription) %>">
+<meta name="twitter:image" content="<%= esc(pageImage) %>">
+<link rel="image_src" href="<%= esc(pageImage) %>">
+<% if (typeof prevUrl !== 'undefined' && prevUrl) { %>
+<link rel="prev" href="<%= esc(/^https?:\/\//i.test(prevUrl) ? prevUrl : `${siteUrl}${prevUrl}`) %>">
+<% } %>
+<% if (typeof nextUrl !== 'undefined' && nextUrl) { %>
+<link rel="next" href="<%= esc(/^https?:\/\//i.test(nextUrl) ? nextUrl : `${siteUrl}${nextUrl}`) %>">
+<% } %>
+<% if (typeof jsonLd !== 'undefined' && jsonLd) { %>
+<script type="application/ld+json"><%- typeof jsonLd === 'string' ? jsonLd : JSON.stringify(jsonLd) %></script>
+<% } %>
