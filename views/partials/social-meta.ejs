@@ -30,8 +30,9 @@
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 %>
-<link rel="icon" href="/favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 <meta name="description" content="<%= esc(pageDescription) %>">
 <meta name="robots" content="<%= esc(pageRobots) %>">
 <link rel="canonical" href="<%= esc(pageUrl) %>">
