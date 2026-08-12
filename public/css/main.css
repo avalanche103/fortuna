@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap');
+
 :root {
   --blue: #1a3a8f;
   --blue-dark: #0f2558;
@@ -396,6 +398,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .home-hero-v2__top {
   background: transparent;
+  min-height: 270px;
   padding: 0.75rem 0 0.9rem;
 }
 
@@ -555,17 +558,18 @@ img { max-width: 100%; height: auto; display: block; }
 .home-hero-v2__quote {
   display: grid;
   gap: 0.15rem;
-  margin: 0;
+  width: min(38vw, 456px);
+  margin: 0.65rem auto 0;
   justify-items: center;
   max-width: 100%;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-style: italic;
-  font-size: clamp(1.15rem, 2.4vw, 1.75rem);
-  line-height: 1.25;
+  text-align: center;
+  font-family: 'Caveat', 'Segoe Script', cursive;
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  line-height: 1.15;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--orange);
+  color: var(--white);
 }
 
 .home-hero-v2__quote span {
@@ -2592,7 +2596,7 @@ body.lightbox-open {
 }
 
 .site-footer__brand-logo {
-  width: 40px;
+  width: 42.5px;
   height: auto;
   flex: 0 0 auto;
 }
