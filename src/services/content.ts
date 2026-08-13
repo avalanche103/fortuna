@@ -303,15 +303,22 @@ export function createScheduleMonth(year: number, month: number, title: string |
 export function copyScheduleMonth(sourceId: number, targetId: number): void {
   db.prepare(
     `INSERT INTO schedule_entries
-       (month_id, day, weekday, group_id, time_start, time_end, location, location_id, note)
-     SELECT ?, day, weekday, group_id, time_start, time_end, location, location_id, note
+       (month_id, day, weekday, group_id, time_start, time_end, location, location_id,
+        is_double, time_start_2, time_end_2, location_id_2, note, note_2)
+     SELECT ?, day, weekday, group_id, time_start, time_end, location, location_id,
+            is_double, time_start_2, time_end_2, location_id_2, note, note_2
      FROM schedule_entries WHERE month_id = ?
      ON CONFLICT(month_id, day, group_id) DO UPDATE SET
        time_start = excluded.time_start,
        time_end = excluded.time_end,
        location = excluded.location,
        location_id = excluded.location_id,
-       note = excluded.note`
+       is_double = excluded.is_double,
+       time_start_2 = excluded.time_start_2,
+       time_end_2 = excluded.time_end_2,
+       location_id_2 = excluded.location_id_2,
+       note = excluded.note,
+       note_2 = excluded.note_2`
   ).run(targetId, sourceId);
 }
 
@@ -346,6 +353,7 @@ export function deleteScheduleLocation(id: number): void {
   db.exec('BEGIN IMMEDIATE');
   try {
     db.prepare('UPDATE schedule_entries SET location_id = NULL WHERE location_id = ?').run(id);
+    db.prepare('UPDATE schedule_entries SET location_id_2 = NULL WHERE location_id_2 = ?').run(id);
     db.prepare('DELETE FROM schedule_locations WHERE id = ?').run(id);
     db.exec('COMMIT');
   } catch (error) {
@@ -360,7 +368,12 @@ export interface ScheduleSlotInput {
   timeStart: string | null;
   timeEnd: string | null;
   locationId: number | null;
+  isDouble: boolean;
+  timeStart2: string | null;
+  timeEnd2: string | null;
+  locationId2: number | null;
   note: string | null;
+  note2: string | null;
 }
 
 export function saveScheduleEntries(month: ScheduleMonth, slots: ScheduleSlotInput[]): void {
@@ -369,21 +382,40 @@ export function saveScheduleEntries(month: ScheduleMonth, slots: ScheduleSlotInp
   );
   const upsert = db.prepare(
     `INSERT INTO schedule_entries
-       (month_id, day, weekday, group_id, time_start, time_end, location, location_id, note)
-     VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
+       (month_id, day, weekday, group_id, time_start, time_end, location, location_id,
+        is_double, time_start_2, time_end_2, location_id_2, note, note_2)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(month_id, day, group_id) DO UPDATE SET
        weekday = excluded.weekday,
        time_start = excluded.time_start,
        time_end = excluded.time_end,
        location = NULL,
        location_id = excluded.location_id,
-       note = excluded.note`
+       is_double = excluded.is_double,
+       time_start_2 = excluded.time_start_2,
+       time_end_2 = excluded.time_end_2,
+       location_id_2 = excluded.location_id_2,
+       note = excluded.note,
+       note_2 = excluded.note_2`
   );
 
   db.exec('BEGIN IMMEDIATE');
   try {
     for (const slot of slots) {
-      const isEmpty = !slot.timeStart && !slot.timeEnd && !slot.locationId && !slot.note;
+      const isDouble = Boolean(slot.isDouble);
+      const timeStart2 = isDouble ? slot.timeStart2 : null;
+      const timeEnd2 = isDouble ? slot.timeEnd2 : null;
+      const locationId2 = isDouble ? slot.locationId2 : null;
+      const note2 = isDouble ? slot.note2 : null;
+      const isEmpty =
+        !slot.timeStart &&
+        !slot.timeEnd &&
+        !slot.locationId &&
+        !timeStart2 &&
+        !timeEnd2 &&
+        !locationId2 &&
+        !slot.note &&
+        !note2;
       if (isEmpty) {
         remove.run(month.id, slot.day, slot.groupId);
         continue;
@@ -399,7 +431,12 @@ export function saveScheduleEntries(month: ScheduleMonth, slots: ScheduleSlotInp
         slot.timeStart,
         slot.timeEnd,
         slot.locationId,
-        slot.note
+        isDouble ? 1 : 0,
+        timeStart2,
+        timeEnd2,
+        locationId2,
+        slot.note,
+        note2
       );
     }
     db.exec('COMMIT');
@@ -413,10 +450,12 @@ export function getScheduleEntries(monthId: number): ScheduleEntry[] {
   return queryRows<ScheduleEntry>(
     db.prepare(
       `SELECT se.*, g.name AS group_name, g.slug AS group_slug,
-              sl.name AS location_name, sl.address AS location_address, sl.color AS location_color
+              sl.name AS location_name, sl.address AS location_address, sl.color AS location_color,
+              sl2.name AS location_name_2, sl2.address AS location_address_2, sl2.color AS location_color_2
        FROM schedule_entries se
        JOIN groups g ON g.id = se.group_id
        LEFT JOIN schedule_locations sl ON sl.id = se.location_id
+       LEFT JOIN schedule_locations sl2 ON sl2.id = se.location_id_2
        WHERE se.month_id = ?
        ORDER BY se.day, g.sort_order`
     ).all(monthId)

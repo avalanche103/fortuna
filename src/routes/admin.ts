@@ -394,9 +394,32 @@ router.post('/schedule/:year(\\d{4})/:month(\\d{1,2})', requireAdmin, (req, res)
         if (timeStart && timeEnd && timeStart >= timeEnd) {
           throw new Error(`Время окончания должно быть позже начала (${day} число)`);
         }
+        const isDouble =
+          values.is_double === '1' ||
+          values.is_double === 'on' ||
+          values.is_double === 'true' ||
+          values.is_double === true ||
+          values.is_double === 1;
+        const timeStart2 = isDouble ? parseScheduleTime(values.time_start_2) : null;
+        const timeEnd2 = isDouble ? parseScheduleTime(values.time_end_2) : null;
+        if (isDouble) {
+          if (!timeStart || !timeEnd) {
+            throw new Error(`Для двойного занятия укажите первую смену (${day} число)`);
+          }
+          if ((timeStart2 && !timeEnd2) || (!timeStart2 && timeEnd2) || !timeStart2 || !timeEnd2) {
+            throw new Error(`Для двойного занятия укажите начало и окончание второй смены (${day} число)`);
+          }
+          if (timeStart2 >= timeEnd2) {
+            throw new Error(`Время окончания второй смены должно быть позже начала (${day} число)`);
+          }
+        }
         const locationId = parseInt(String(values.location_id ?? ''), 10);
         if (Number.isFinite(locationId) && !locationIds.has(locationId)) {
           throw new Error('Выбрана неизвестная площадка');
+        }
+        const locationId2 = parseInt(String(values.location_id_2 ?? ''), 10);
+        if (isDouble && Number.isFinite(locationId2) && !locationIds.has(locationId2)) {
+          throw new Error('Выбрана неизвестная площадка для второй смены');
         }
         slots.push({
           day,
@@ -404,7 +427,12 @@ router.post('/schedule/:year(\\d{4})/:month(\\d{1,2})', requireAdmin, (req, res)
           timeStart,
           timeEnd,
           locationId: Number.isFinite(locationId) ? locationId : null,
+          isDouble,
+          timeStart2,
+          timeEnd2,
+          locationId2: isDouble && Number.isFinite(locationId2) ? locationId2 : null,
           note: cleanText(values.note) || null,
+          note2: isDouble ? (cleanText(values.note_2) || null) : null,
         });
       }
     }
@@ -477,10 +505,19 @@ function cleanText(value: unknown): string {
 }
 
 function parseScheduleTime(value: unknown): string | null {
-  const time = cleanText(value).replace('.', ':');
-  if (!time) return null;
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Некорректный формат времени');
-  return time;
+  const raw = cleanText(value).replace(',', '.').replace('.', ':');
+  if (!raw) return null;
+
+  const match = raw.match(/^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?$/);
+  if (!match) throw new Error('Некорректный формат времени');
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isInteger(hours) || hours < 0 || hours > 23) {
+    throw new Error('Некорректный формат времени');
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 function parseLocationInput(body: Record<string, unknown>) {

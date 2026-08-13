@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
@@ -15,6 +16,7 @@
         <h1><%= title %></h1>
         <a href="/admin/players/new" class="btn btn--primary">+ Добавить</a>
       </div>
+      <div class="admin-table-scroll">
       <table class="admin-table">
         <thead><tr><th>Имя</th><th>Группа / статус</th><th></th></tr></thead>
         <tbody>
@@ -27,6 +29,7 @@
           <% }); %>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </body>

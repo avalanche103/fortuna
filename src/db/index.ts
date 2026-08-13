@@ -90,6 +90,21 @@ function patchScheduleSchema(): void {
   if (!entryCols.some((column) => column.name === 'location_id')) {
     db.exec('ALTER TABLE schedule_entries ADD COLUMN location_id INTEGER REFERENCES schedule_locations(id)');
   }
+  if (!entryCols.some((column) => column.name === 'is_double')) {
+    db.exec('ALTER TABLE schedule_entries ADD COLUMN is_double INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!entryCols.some((column) => column.name === 'time_start_2')) {
+    db.exec('ALTER TABLE schedule_entries ADD COLUMN time_start_2 TEXT');
+  }
+  if (!entryCols.some((column) => column.name === 'time_end_2')) {
+    db.exec('ALTER TABLE schedule_entries ADD COLUMN time_end_2 TEXT');
+  }
+  if (!entryCols.some((column) => column.name === 'location_id_2')) {
+    db.exec('ALTER TABLE schedule_entries ADD COLUMN location_id_2 INTEGER REFERENCES schedule_locations(id)');
+  }
+  if (!entryCols.some((column) => column.name === 'note_2')) {
+    db.exec('ALTER TABLE schedule_entries ADD COLUMN note_2 TEXT');
+  }
 
   const locations = [
     ['Стадион «Зеленый Луг»', 'ул. Гамарника, 9/1', '#86d993', 10],

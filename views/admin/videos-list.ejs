@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
@@ -21,6 +22,7 @@
         <div class="form-group"><label>Порядок</label><input type="number" name="sort_order" value="0"></div>
         <button type="submit" class="btn btn--primary">Добавить</button>
       </form>
+      <div class="admin-table-scroll">
       <table class="admin-table">
         <thead><tr><th>Название</th><th>URL</th><th></th></tr></thead>
         <tbody>
@@ -37,6 +39,7 @@
           <% }); %>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </body>

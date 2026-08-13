@@ -390,6 +390,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Home hero variant 2 — restored masthead from the legacy site */
 .home-hero-v2 {
+  height: 330px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.42) 100%),
     url('/images/imgonlfgfggfh.jpg') center / cover no-repeat;
@@ -397,6 +398,9 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 .home-hero-v2__top {
+  display: flex;
+  align-items: center;
+  height: 100%;
   background: transparent;
   min-height: 270px;
   padding: 0.75rem 0 0.9rem;
@@ -1959,6 +1963,12 @@ body:not(.page-home) > main {
   color: var(--location-text, #fff);
 }
 
+.schedule-cell.has-session.has-double {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
 .schedule-cell__empty { color: var(--gray-300); }
 
 .schedule-session {
@@ -1971,6 +1981,31 @@ body:not(.page-home) > main {
   padding: 0.75rem 0.55rem;
   color: inherit;
   text-align: center;
+}
+
+.schedule-session--double {
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.schedule-session__shift {
+  display: grid;
+  width: 100%;
+  gap: 0.2rem;
+  justify-items: center;
+}
+
+.schedule-session--double .schedule-session__shift {
+  padding: 0.55rem 0.5rem;
+  background: var(--location-color, #6b7280);
+  color: var(--location-text, #fff);
+}
+
+.schedule-session--double .schedule-session__shift + .schedule-session__shift {
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .schedule-session__time {
@@ -1987,8 +2022,9 @@ body:not(.page-home) > main {
 
 .schedule-session__note {
   display: block;
+  width: 100%;
   margin-top: 0.15rem;
-  padding-top: 0.28rem;
+  padding: 0.28rem 0 0;
   border-top: 1px solid currentColor;
   color: inherit;
   font-size: 0.76rem;
@@ -2045,11 +2081,26 @@ body:not(.page-home) > main {
 
 @media (max-width: 700px) {
   .schedule-page { padding-top: 0.75rem; }
-  .schedule-months,
-  .schedule-groups {
+  .schedule-months {
     gap: 0.45rem;
     margin-right: -1rem;
     padding-right: 1rem;
+  }
+  .schedule-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    overflow: visible;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+  .schedule-groups a {
+    flex: none;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    text-align: center;
   }
   .schedule-groups__all { display: none; }
   .schedule-empty--mobile-only { display: block; }
@@ -2084,6 +2135,60 @@ body:not(.page-home) > main {
   .schedule-mobile-card__content strong { font-size: 1.08rem; }
   .schedule-mobile-card__content span { font-size: 0.88rem; font-weight: 600; }
   .schedule-mobile-card__content small { color: inherit; opacity: 0.85; }
+  .schedule-mobile-card__shift {
+    display: grid;
+    gap: 0.15rem;
+    width: 100%;
+  }
+  .schedule-mobile-card--double.is-same-venue .schedule-mobile-card__content {
+    gap: 0.45rem;
+  }
+  .schedule-mobile-card--double.is-same-venue .schedule-mobile-card__shift {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+  }
+  .schedule-mobile-card--double.is-split-venue {
+    grid-template-rows: 1fr 1fr;
+    align-items: stretch;
+    overflow: hidden;
+    padding: 0;
+    background:
+      linear-gradient(
+        180deg,
+        var(--location-color, #6b7280) 50%,
+        var(--location-color-2, #6b7280) 50%
+      );
+    color: var(--location-text, #fff);
+  }
+  .schedule-mobile-card--double.is-split-venue .schedule-mobile-card__date {
+    grid-row: 1 / span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.8rem 1rem 1rem;
+    border-right-color: rgba(255, 255, 255, 0.28);
+  }
+  .schedule-mobile-card--double.is-split-venue .schedule-mobile-card__content {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+    min-height: 100%;
+  }
+  .schedule-mobile-card--double.is-split-venue .schedule-mobile-card__shift {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.75rem 1rem 0.75rem 0.85rem;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+  }
+  .schedule-mobile-card--double.is-split-venue .schedule-mobile-card__shift:last-child {
+    color: var(--location-text-2, #fff);
+  }
   .schedule-legend ul { grid-template-columns: 1fr; }
 }
 

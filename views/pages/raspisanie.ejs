@@ -65,17 +65,30 @@
                   <th scope="row" class="day-cell"><strong><%= day %></strong><small><%= weekday %></small></th>
                   <% groups.forEach(function(group) {
                     const slot = entryBySlot.get(day + ':' + group.id);
+                    const isDouble = slot && Number(slot.is_double) === 1;
                     const color = slot && slot.location_color ? slot.location_color : '#6b7280';
+                    const color2 = slot && slot.location_color_2 ? slot.location_color_2 : color;
                   %>
-                    <td class="schedule-cell <%= slot ? 'has-session' : '' %>"
+                    <td class="schedule-cell <%= slot ? 'has-session' : '' %> <%= isDouble ? 'has-double' : '' %>"
                         <% if (slot) { %>style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>"<% } %>>
                       <% if (slot) { %>
-                        <article class="schedule-session">
-                          <% if (slot.time_start) { %>
-                            <strong class="schedule-session__time"><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong>
+                        <article class="schedule-session <%= isDouble ? 'schedule-session--double' : '' %>">
+                          <div class="schedule-session__shift" style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>">
+                            <% if (slot.time_start) { %>
+                              <strong class="schedule-session__time"><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong>
+                            <% } %>
+                            <span class="schedule-session__location"><%= slot.location_name || 'Площадка не указана' %></span>
+                            <% if (slot.note) { %><small class="schedule-session__note"><%= slot.note %></small><% } %>
+                          </div>
+                          <% if (isDouble) { %>
+                            <div class="schedule-session__shift" style="--location-color:<%= color2 %>;--location-text:<%= scheduleTextColor(color2) %>">
+                              <% if (slot.time_start_2) { %>
+                                <strong class="schedule-session__time"><%= slot.time_start_2 %><%= slot.time_end_2 ? '–' + slot.time_end_2 : '' %></strong>
+                              <% } %>
+                              <span class="schedule-session__location"><%= slot.location_name_2 || 'Площадка не указана' %></span>
+                              <% if (slot.note_2) { %><small class="schedule-session__note"><%= slot.note_2 %></small><% } %>
+                            </div>
                           <% } %>
-                          <span class="schedule-session__location"><%= slot.location_name || 'Площадка не указана' %></span>
-                          <% if (slot.note) { %><small class="schedule-session__note"><%= slot.note %></small><% } %>
                         </article>
                       <% } else { %>
                         <span class="schedule-cell__empty" aria-label="Занятий нет">—</span>
@@ -93,15 +106,27 @@
             <% entries.forEach(function(slot) {
               const date = new Date(Date.UTC(displayYear, displayMonth - 1, slot.day));
               const dateLabel = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', weekday: 'short', timeZone: 'UTC' }).format(date);
+              const isDouble = Number(slot.is_double) === 1;
               const color = slot.location_color || '#6b7280';
+              const color2 = slot.location_color_2 || color;
+              const sameVenue = !isDouble || String(slot.location_id || '') === String(slot.location_id_2 || '');
             %>
-              <article class="schedule-mobile-card"
-                       style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>">
+              <article class="schedule-mobile-card <%= isDouble ? 'schedule-mobile-card--double' : '' %> <%= isDouble && sameVenue ? 'is-same-venue' : '' %> <%= isDouble && !sameVenue ? 'is-split-venue' : '' %>"
+                       style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>;--location-color-2:<%= color2 %>;--location-text-2:<%= scheduleTextColor(color2) %>">
                 <div class="schedule-mobile-card__date"><%= dateLabel %></div>
                 <div class="schedule-mobile-card__content">
-                  <% if (slot.time_start) { %><strong><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong><% } %>
-                  <span><%= slot.location_name || 'Площадка не указана' %></span>
-                  <% if (slot.note) { %><small><%= slot.note %></small><% } %>
+                  <div class="schedule-mobile-card__shift" style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>">
+                    <% if (slot.time_start) { %><strong><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong><% } %>
+                    <span><%= slot.location_name || 'Площадка не указана' %></span>
+                    <% if (slot.note) { %><small><%= slot.note %></small><% } %>
+                  </div>
+                  <% if (isDouble) { %>
+                    <div class="schedule-mobile-card__shift" style="--location-color:<%= color2 %>;--location-text:<%= scheduleTextColor(color2) %>">
+                      <% if (slot.time_start_2) { %><strong><%= slot.time_start_2 %><%= slot.time_end_2 ? '–' + slot.time_end_2 : '' %></strong><% } %>
+                      <span><%= slot.location_name_2 || 'Площадка не указана' %></span>
+                      <% if (slot.note_2) { %><small><%= slot.note_2 %></small><% } %>
+                    </div>
+                  <% } %>
                 </div>
               </article>
             <% }); %>

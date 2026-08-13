@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
@@ -23,45 +24,87 @@
       <% } else if (moveError) { %>
         <p class="news-order-status" data-kind="error">Не удалось изменить порядок.</p>
       <% } %>
-      <table class="admin-table admin-table--sortable">
-        <thead><tr><th></th><th>Дата</th><th>Заголовок</th><th>Категория</th><th></th></tr></thead>
-        <tbody id="news-sortable">
-          <% news.forEach(function(n) { %>
-            <% const isNabor = n.category === 'nabor'; %>
-            <tr data-id="<%= n.id %>">
-              <td class="news-drag-cell">
-                <% if (isNabor) { %>
-                  <span class="news-drag-placeholder" aria-hidden="true">—</span>
-                <% } else { %>
-                  <div class="news-order-controls">
-                    <form action="/admin/news/move" method="post" class="news-move-form">
-                      <input type="hidden" name="id" value="<%= n.id %>">
-                      <input type="hidden" name="direction" value="up">
-                      <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
-                    </form>
-                    <form action="/admin/news/move" method="post" class="news-move-form">
-                      <input type="hidden" name="id" value="<%= n.id %>">
-                      <input type="hidden" name="direction" value="down">
-                      <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
-                    </form>
+
+      <div class="admin-table-scroll admin-table-scroll--desktop">
+        <table class="admin-table admin-table--sortable">
+          <thead><tr><th></th><th>Дата</th><th>Заголовок</th><th>Категория</th><th></th></tr></thead>
+          <tbody id="news-sortable">
+            <% news.forEach(function(n) { %>
+              <% const isNabor = n.category === 'nabor'; %>
+              <tr data-id="<%= n.id %>">
+                <td class="news-drag-cell">
+                  <% if (isNabor) { %>
+                    <span class="news-drag-placeholder" aria-hidden="true">—</span>
+                  <% } else { %>
+                    <div class="news-order-controls">
+                      <form action="/admin/news/move" method="post" class="news-move-form">
+                        <input type="hidden" name="id" value="<%= n.id %>">
+                        <input type="hidden" name="direction" value="up">
+                        <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                      </form>
+                      <form action="/admin/news/move" method="post" class="news-move-form">
+                        <input type="hidden" name="id" value="<%= n.id %>">
+                        <input type="hidden" name="direction" value="down">
+                        <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                      </form>
+                    </div>
+                  <% } %>
+                </td>
+                <td><%= n.published_at %></td>
+                <td><%= n.title %><% if (isNabor) { %> <span class="news-home-badge">· главная</span><% } %></td>
+                <td><%= n.category %></td>
+                <td class="admin-table-actions">
+                  <div class="btn-group">
+                    <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
+                    <% if (!isNabor) { %>
+                      <form action="/admin/news/<%= n.id %>/delete" method="post" onsubmit="return confirm('Удалить?')">
+                        <button type="submit" class="btn btn--danger">Удалить</button>
+                      </form>
+                    <% } %>
                   </div>
-                <% } %>
-              </td>
-              <td><%= n.published_at %></td>
-              <td><%= n.title %><% if (isNabor) { %> <span style="color:var(--orange);font-size:0.85rem;">· главная</span><% } %></td>
-              <td><%= n.category %></td>
-              <td class="btn-group">
-                <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
-                <% if (!isNabor) { %>
-                  <form action="/admin/news/<%= n.id %>/delete" method="post" style="display:inline;" onsubmit="return confirm('Удалить?')">
-                    <button type="submit" class="btn btn--danger">Удалить</button>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-card-list admin-card-list--mobile">
+        <% news.forEach(function(n) { %>
+          <% const isNabor = n.category === 'nabor'; %>
+          <article class="admin-card-item">
+            <div class="admin-card-item__top">
+              <% if (!isNabor) { %>
+                <div class="news-order-controls">
+                  <form action="/admin/news/move" method="post" class="news-move-form">
+                    <input type="hidden" name="id" value="<%= n.id %>">
+                    <input type="hidden" name="direction" value="up">
+                    <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
                   </form>
-                <% } %>
-              </td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
+                  <form action="/admin/news/move" method="post" class="news-move-form">
+                    <input type="hidden" name="id" value="<%= n.id %>">
+                    <input type="hidden" name="direction" value="down">
+                    <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                  </form>
+                </div>
+              <% } %>
+              <div class="admin-card-item__meta">
+                <time><%= n.published_at %></time>
+                <span><%= n.category %><% if (isNabor) { %> · главная<% } %></span>
+              </div>
+            </div>
+            <h2 class="admin-card-item__title"><%= n.title %></h2>
+            <div class="btn-group admin-card-item__actions">
+              <a href="/admin/news/<%= n.id %>/edit" class="btn btn--outline">Изменить</a>
+              <% if (!isNabor) { %>
+                <form action="/admin/news/<%= n.id %>/delete" method="post" onsubmit="return confirm('Удалить?')">
+                  <button type="submit" class="btn btn--danger">Удалить</button>
+                </form>
+              <% } %>
+            </div>
+          </article>
+        <% }); %>
+      </div>
     </div>
   </div>
 </body>

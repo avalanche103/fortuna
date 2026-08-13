@@ -86,7 +86,12 @@ CREATE TABLE IF NOT EXISTS schedule_entries (
   time_end TEXT,
   location TEXT,
   location_id INTEGER REFERENCES schedule_locations(id),
-  note TEXT
+  is_double INTEGER NOT NULL DEFAULT 0,
+  time_start_2 TEXT,
+  time_end_2 TEXT,
+  location_id_2 INTEGER REFERENCES schedule_locations(id),
+  note TEXT,
+  note_2 TEXT
 );
 
 CREATE TABLE IF NOT EXISTS videos (

@@ -1,4 +1,10 @@
-<aside class="admin-sidebar">
+<header class="admin-topbar">
+  <button type="button" class="admin-nav-toggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="admin-sidebar">
+    <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+  </button>
+  <span class="admin-topbar__title">Админка «Фортуна»</span>
+</header>
+<aside class="admin-sidebar" id="admin-sidebar">
   <div class="admin-sidebar__brand">
     <span class="admin-sidebar__brand-line">Футбольный клуб</span>
     <span class="admin-sidebar__brand-line">«Фортуна» Минск</span>
@@ -14,7 +20,37 @@
     <a href="/admin/settings" class="<%= currentPath.startsWith('/admin/settings') ? 'active' : '' %>">Настройки</a>
     <a href="/" target="_blank">Открыть сайт</a>
   </nav>
-  <form action="/admin/logout" method="post" style="padding:1rem 1.25rem;margin-top:2rem;">
-    <button type="submit" class="btn btn--outline" style="width:100%;color:#fff;border-color:rgba(255,255,255,0.3);">Выйти</button>
+  <form action="/admin/logout" method="post" class="admin-sidebar__logout">
+    <button type="submit" class="btn btn--outline admin-sidebar__logout-btn">Выйти</button>
   </form>
+  <script>
+  (function () {
+    var layout = document.querySelector('.admin-layout');
+    var toggle = document.querySelector('.admin-nav-toggle');
+    var backdrop = document.querySelector('.admin-sidebar-backdrop');
+    if (!layout || !toggle) return;
+
+    function setOpen(open) {
+      layout.classList.toggle('is-nav-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+      if (backdrop) backdrop.hidden = !open;
+      document.body.classList.toggle('admin-nav-lock', open);
+    }
+
+    toggle.addEventListener('click', function () {
+      setOpen(!layout.classList.contains('is-nav-open'));
+    });
+    if (backdrop) {
+      backdrop.addEventListener('click', function () { setOpen(false); });
+    }
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') setOpen(false);
+    });
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 900) setOpen(false);
+    });
+  })();
+  </script>
 </aside>
+<button type="button" class="admin-sidebar-backdrop" aria-label="Закрыть меню" hidden></button>

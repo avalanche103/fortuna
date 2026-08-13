@@ -21,7 +21,8 @@ app.set('views', path.join(__dirname, '..', 'views'));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(UPLOAD_DIR));
-app.use(express.urlencoded({ extended: true }));
+// Schedule month grid posts many slot fields (days × groups × times/locations).
+app.use(express.urlencoded({ extended: true, limit: '2mb', parameterLimit: 50000 }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'fortuna-dev-secret-change-me',

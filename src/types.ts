@@ -61,12 +61,20 @@ export interface ScheduleEntry {
   time_end: string | null;
   location: string | null;
   location_id: number | null;
+  is_double: number;
+  time_start_2: string | null;
+  time_end_2: string | null;
+  location_id_2: number | null;
   note: string | null;
+  note_2: string | null;
   group_name?: string;
   group_slug?: string;
   location_name?: string | null;
   location_address?: string | null;
   location_color?: string | null;
+  location_name_2?: string | null;
+  location_address_2?: string | null;
+  location_color_2?: string | null;
 }
 
 export interface ScheduleLocation {
