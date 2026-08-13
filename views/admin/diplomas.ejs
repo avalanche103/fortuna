@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <main class="admin-main">
+      <div class="admin-header">
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Заполните данные и скачайте готовый PDF формата A4.</p>
+        </div>
+      </div>
+
+      <div class="diploma-admin">
+        <form class="form-card diploma-form" method="post" action="/admin/diplomas/generate" target="_blank">
+          <div class="form-group">
+            <label for="recipient-name">ФИО в дательном падеже</label>
+            <input id="recipient-name" type="text" name="recipient_name" required maxlength="120" placeholder="Например: ВалЕвачу Кириллу">
+            <p class="form-hint">Так имя будет напечатано после слова «Выдано».</p>
+          </div>
+
+          <div class="diploma-form__row">
+            <div class="form-group">
+              <label for="birth-year">Год рождения</label>
+              <input id="birth-year" type="number" name="birth_year" min="1990" max="2100" required value="<%= new Date().getFullYear() - 14 %>">
+            </div>
+            <div class="form-group">
+              <label for="education-age">Обучение до возраста</label>
+              <input id="education-age" type="number" name="education_until_age" min="4" max="21" required value="14">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="diploma-city">Город</label>
+            <input id="diploma-city" type="text" name="city" required maxlength="80" value="Минск">
+          </div>
+
+          <div class="form-group">
+            <label for="diploma-mentors">Наставники</label>
+            <input id="diploma-mentors" type="text" name="mentors" required maxlength="180" value="С.В. Романовского и А.И. Довгеля">
+          </div>
+
+          <div class="diploma-form__row">
+            <div class="form-group">
+              <label for="director-name">Директор</label>
+              <input id="director-name" type="text" name="director_name" required maxlength="100" value="С.В. Романовский">
+            </div>
+            <div class="form-group">
+              <label for="issue-date">Дата выдачи</label>
+              <input id="issue-date" type="date" name="issue_date" required value="<%= new Date().toISOString().slice(0, 10) %>">
+            </div>
+          </div>
+
+          <button class="btn btn--primary diploma-form__submit" type="submit">Сгенерировать PDF</button>
+        </form>
+
+        <section class="diploma-preview" aria-labelledby="diploma-preview-title">
+          <h2 id="diploma-preview-title">Предпросмотр текста</h2>
+          <div class="diploma-preview__paper">
+            <strong id="preview-recipient">Выдано …</strong>
+            <p id="preview-body">Заполните ФИО, чтобы увидеть текст свидетельства.</p>
+            <p class="diploma-preview__signature">Директор ФК «ФОРТУНА» (Минск)<br><span id="preview-director">____________ С.В. Романовский</span></p>
+            <time id="preview-date"></time>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    const form = document.querySelector('.diploma-form');
+    if (!form) return;
+    const get = (name) => form.elements.namedItem(name);
+    const recipient = document.getElementById('preview-recipient');
+    const body = document.getElementById('preview-body');
+    const director = document.getElementById('preview-director');
+    const date = document.getElementById('preview-date');
+
+    function formatDate(value) {
+      const parts = String(value || '').split('-');
+      return parts.length === 3 ? parts.reverse().join('.') : value;
+    }
+
+    function update() {
+      const name = get('recipient_name').value.trim();
+      const birthYear = get('birth_year').value;
+      const age = get('education_until_age').value;
+      const city = get('city').value.trim();
+      const mentors = get('mentors').value.trim();
+      recipient.textContent = name ? 'Выдано ' + name.toUpperCase() + ',' : 'Выдано …';
+      body.textContent = name
+        ? birthYear + ' г.р., в том, что базовое футбольное образование (до ' +
+          age + ' лет) он получил в футбольном клубе «ФОРТУНА» (' + city +
+          ') у наставников ' + mentors
+        : 'Заполните ФИО, чтобы увидеть текст свидетельства.';
+      director.textContent = '____________ ' + get('director_name').value.trim();
+      date.textContent = formatDate(get('issue_date').value);
+    }
+
+    form.addEventListener('input', update);
+    update();
+  })();
+  </script>
+</body>
+</html>

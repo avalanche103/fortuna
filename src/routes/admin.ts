@@ -27,6 +27,7 @@ import {
   updateScheduleLocation,
 } from '../services/content';
 import type { ScheduleSlotInput } from '../services/content';
+import { createDiplomaPdf } from '../services/diploma';
 import { resolveYoutubeTitle } from '../utils/youtube';
 
 ensureDataDirs();
@@ -624,6 +625,67 @@ router.post('/videos', requireAdmin, async (req, res) => {
 router.post('/videos/:id/delete', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.id);
   res.redirect('/admin/videos');
+});
+
+// --- Diplomas ---
+router.get('/diplomas', requireAdmin, (_req, res) => {
+  res.render('admin/diplomas', { title: 'Дипломы' });
+});
+
+router.post('/diplomas/generate', requireAdmin, async (req, res) => {
+  const recipientName = cleanText(req.body.recipient_name);
+  const birthYear = parseInt(String(req.body.birth_year ?? ''), 10);
+  const educationUntilAge = parseInt(String(req.body.education_until_age ?? ''), 10);
+  const city = cleanText(req.body.city);
+  const mentors = cleanText(req.body.mentors);
+  const directorName = cleanText(req.body.director_name);
+  const issueDate = cleanText(req.body.issue_date);
+  const currentYear = new Date().getFullYear();
+
+  if (!recipientName || recipientName.length > 120) {
+    res.status(400).send('Укажите ФИО получателя');
+    return;
+  }
+  if (!Number.isInteger(birthYear) || birthYear < 1990 || birthYear > currentYear) {
+    res.status(400).send('Укажите корректный год рождения');
+    return;
+  }
+  if (!Number.isInteger(educationUntilAge) || educationUntilAge < 4 || educationUntilAge > 21) {
+    res.status(400).send('Укажите корректный возраст окончания обучения');
+    return;
+  }
+  if (!city || city.length > 80 || !mentors || mentors.length > 180) {
+    res.status(400).send('Заполните город и наставников');
+    return;
+  }
+  if (!directorName || directorName.length > 100) {
+    res.status(400).send('Укажите директора');
+    return;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(issueDate) || Number.isNaN(Date.parse(issueDate))) {
+    res.status(400).send('Укажите корректную дату выдачи');
+    return;
+  }
+
+  try {
+    const pdf = await createDiplomaPdf({
+      recipientName,
+      birthYear,
+      educationUntilAge,
+      city,
+      mentors,
+      directorName,
+      issueDate,
+    });
+    const safeName = slugify(recipientName, { lower: true, strict: true }) || 'poluchatel';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="svidetelstvo-${safeName}.pdf"`);
+    res.setHeader('Content-Length', String(pdf.length));
+    res.send(pdf);
+  } catch (error) {
+    console.error('Diploma PDF generation failed:', error);
+    res.status(500).send('Не удалось сгенерировать PDF');
+  }
 });
 
 // --- Settings ---
