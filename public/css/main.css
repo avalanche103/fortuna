@@ -16,6 +16,9 @@
   --shadow: 0 4px 24px rgba(26, 58, 143, 0.08);
   --radius: 12px;
   --page-width: min(1200px, 92vw);
+  --page-bg: #c4ddfc;
+  --page-gutter: 16px;
+  --page-inset: 1.5rem;
   --font-heading: 'Barlow Condensed', sans-serif;
   --font-body: 'Source Sans 3', sans-serif;
   --font-button: 'Oswald', sans-serif;
@@ -23,14 +26,28 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  min-height: 100%;
+  background-color: var(--page-bg);
+  background-image: url('/images/page-background.jpg');
+  background-repeat: repeat;
+  padding: var(--page-gutter) 0;
+}
 
 body {
-  margin: 0;
+  margin: 0 auto;
+  width: var(--page-width);
+  min-height: calc(100vh - 2 * var(--page-gutter));
   font-family: var(--font-body);
   font-size: 17px;
   line-height: 1.6;
   color: var(--gray-900);
+  background: var(--white);
+}
+
+main {
+  margin: 0 var(--page-inset);
   background: var(--gray-50);
 }
 
@@ -49,14 +66,13 @@ a:hover { color: var(--orange); }
 img { max-width: 100%; height: auto; display: block; }
 
 .container {
-  width: var(--page-width);
+  width: 100%;
   margin: 0 auto;
 }
 
 /* Banner ticker */
 .ticker {
-  width: var(--page-width);
-  margin: 0 auto;
+  width: 100%;
   background: var(--orange-dark);
   color: var(--white);
   overflow: hidden;
@@ -82,8 +98,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Header */
 .site-header {
-  width: var(--page-width);
-  margin: 0 auto;
+  width: 100%;
   background: var(--white);
   box-shadow: var(--shadow);
   position: sticky;
@@ -395,8 +410,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Home hero variant 2 — layout matched to legacy fcfortuna.by masthead */
 .home-hero-v2 {
-  width: var(--page-width);
-  margin: 0 auto;
+  width: 100%;
   height: 274px;
   background: url('/images/hero-banner.jpg') center / 100% 100% no-repeat;
   box-shadow: 0 0 10px 5px #e9ebeb;
@@ -2583,8 +2597,8 @@ body.lightbox-open {
 
 /* Footer */
 .site-footer {
-  width: var(--page-width);
-  margin: 3rem auto 0;
+  width: 100%;
+  margin: 3rem 0 0;
   background: var(--orange-dark);
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.92rem;
@@ -2882,6 +2896,7 @@ body.lightbox-open {
 @media (max-width: 640px) {
   :root {
     --page-width: min(1200px, calc(100% - 1.5rem));
+    --page-inset: 1rem;
   }
 
   .ticker {
