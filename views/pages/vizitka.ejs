@@ -18,7 +18,16 @@
 
       <% if (intro) { %>
         <article class="card vizitka-intro">
-          <h2 class="vizitka-intro__title"><%= intro.title %></h2>
+          <h2 class="vizitka-intro__title">
+            <% const fortunaMark = '«ФОРТУНА»'; %>
+            <% const fortunaAt = intro.title.indexOf(fortunaMark); %>
+            <% if (fortunaAt > 0) { %>
+              <span class="vizitka-intro__title-line"><%= intro.title.slice(0, fortunaAt).trim() %></span>
+              <span class="vizitka-intro__title-line"><%= intro.title.slice(fortunaAt).trim() %></span>
+            <% } else { %>
+              <%= intro.title %>
+            <% } %>
+          </h2>
           <div class="vizitka-intro__body"><%= intro.body %></div>
         </article>
       <% } %>

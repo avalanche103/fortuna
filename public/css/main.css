@@ -48,7 +48,7 @@ body {
 
 main {
   margin: 0 var(--page-inset);
-  background: var(--gray-50);
+  background: var(--white);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -427,7 +427,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .home-hero-v2__logo {
   position: absolute;
-  top: 18px;
+  top: 28px;
   left: 28px;
   z-index: 2;
   display: block;
@@ -506,7 +506,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .home-hero-v2__aside {
   position: absolute;
-  top: 36px;
+  top: 28px;
   right: 15px;
   z-index: 2;
   display: flex;
@@ -520,32 +520,33 @@ img { max-width: 100%; height: auto; display: block; }
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
-  padding: 11px 0;
+  padding: 0 0 11px;
 }
 
 .home-hero-v2__respect {
+  width: 130px;
   max-width: 130px;
-  width: auto;
   height: auto;
   display: block;
+  flex: 0 0 auto;
 }
 
 .home-hero-v2__social {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-left: 5px;
+  gap: 0;
 }
 
 .home-hero-v2__social a {
   display: inline-flex;
   line-height: 0;
-  max-width: 32px;
+  width: 22px;
+  max-width: 22px;
 }
 
 .home-hero-v2__social img {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   display: block;
 }
 
@@ -598,10 +599,6 @@ img { max-width: 100%; height: auto; display: block; }
   .home-hero-v2__contacts {
     font-size: 15px;
   }
-
-  .home-hero-v2__respect {
-    max-width: 110px;
-  }
 }
 
 @media (max-width: 960px) {
@@ -611,11 +608,6 @@ img { max-width: 100%; height: auto; display: block; }
 
   .home-hero-v2__aside {
     max-width: 42%;
-  }
-
-  .home-hero-v2__social img {
-    width: 28px;
-    height: 28px;
   }
 }
 
@@ -1055,6 +1047,7 @@ img { max-width: 100%; height: auto; display: block; }
 .news-item__cover {
   display: block;
   object-fit: cover;
+  object-position: top;
   background: var(--gray-200);
 }
 
@@ -1422,6 +1415,7 @@ img { max-width: 100%; height: auto; display: block; }
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
+  object-position: top;
   border-radius: var(--radius);
   background: linear-gradient(135deg, var(--blue-light), var(--blue));
   margin-bottom: 0.75rem;
@@ -1685,9 +1679,17 @@ body:not(.page-home) > main {
   margin-bottom: 1.5rem;
 }
 
+.vizitka-intro {
+  text-align: center;
+}
+
 .vizitka-intro__title {
   color: var(--blue);
   margin-bottom: 1rem;
+}
+
+.vizitka-intro__title-line {
+  display: block;
 }
 
 .vizitka-intro__body {
@@ -2765,6 +2767,7 @@ body.lightbox-open {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  object-position: top;
   background: var(--gray-200);
   display: block;
 }
