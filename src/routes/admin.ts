@@ -604,20 +604,62 @@ function syncPlayerGroups(playerId: number, groupIds: string | string[] | undefi
 }
 
 // --- Videos ---
-router.get('/videos', requireAdmin, (_req, res) => {
-  const videos = db.prepare('SELECT * FROM videos ORDER BY sort_order').all();
-  res.render('admin/videos-list', { title: 'Видео', videos });
+router.get('/videos', requireAdmin, (req, res) => {
+  const videos = db.prepare('SELECT * FROM videos ORDER BY sort_order, published_at DESC, id').all();
+  res.render('admin/videos-list', {
+    title: 'Видео',
+    videos,
+    moved: req.query.moved === '1',
+    moveError: req.query.error === 'move',
+  });
+});
+
+router.post('/videos/move', requireAdmin, (req, res) => {
+  const id = parseInt(String(req.body.id ?? ''), 10);
+  const direction = req.body.direction === 'down' ? 'down' : 'up';
+  if (!Number.isFinite(id)) {
+    res.redirect('/admin/videos?error=move');
+    return;
+  }
+
+  const videos = queryRows<{ id: number }>(
+    db.prepare('SELECT id FROM videos ORDER BY sort_order, published_at DESC, id').all()
+  );
+  const index = videos.findIndex((video) => video.id === id);
+  const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+  if (index < 0 || neighborIndex < 0 || neighborIndex >= videos.length) {
+    res.redirect('/admin/videos');
+    return;
+  }
+
+  const current = videos[index];
+  videos[index] = videos[neighborIndex];
+  videos[neighborIndex] = current;
+
+  const update = db.prepare('UPDATE videos SET sort_order = ? WHERE id = ?');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    videos.forEach((video, sortOrder) => update.run(sortOrder, video.id));
+    db.exec('COMMIT');
+    res.redirect('/admin/videos?moved=1');
+  } catch {
+    db.exec('ROLLBACK');
+    res.redirect('/admin/videos?error=move');
+  }
 });
 
 router.post('/videos', requireAdmin, async (req, res) => {
-  const { title, youtube_url, sort_order } = req.body;
+  const { title, youtube_url } = req.body;
   const resolvedTitle =
     (typeof title === 'string' && title.trim()) ||
     (await resolveYoutubeTitle(youtube_url, 'Без названия'));
+  const minSort = queryRow<{ value: number }>(
+    db.prepare("SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM videos").get()
+  );
   db.prepare('INSERT INTO videos (title, youtube_url, sort_order) VALUES (?, ?, ?)').run(
     resolvedTitle,
     youtube_url,
-    parseInt(sort_order, 10) || 0
+    minSort?.value ?? 0
   );
   res.redirect('/admin/videos');
 });

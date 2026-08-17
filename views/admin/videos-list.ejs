@@ -12,22 +12,45 @@
   <div class="admin-layout">
     <%- include('sidebar') %>
     <div class="admin-main">
-      <h1><%= title %></h1>
+      <div class="admin-header">
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Используйте ↑ ↓, чтобы изменить порядок видео на сайте.</p>
+        </div>
+      </div>
+      <% if (moved) { %>
+        <p class="news-order-status" data-kind="success">Порядок сохранён.</p>
+      <% } else if (moveError) { %>
+        <p class="news-order-status" data-kind="error">Не удалось изменить порядок.</p>
+      <% } %>
       <form class="form-card" method="post" action="/admin/videos" style="margin-bottom:2rem;">
         <div class="form-group">
           <label>Название</label>
           <input type="text" name="title" placeholder="Подтянется с YouTube, если оставить пустым">
         </div>
         <div class="form-group"><label>YouTube URL</label><input type="url" name="youtube_url" required></div>
-        <div class="form-group"><label>Порядок</label><input type="number" name="sort_order" value="0"></div>
         <button type="submit" class="btn btn--primary">Добавить</button>
       </form>
-      <div class="admin-table-scroll">
-      <table class="admin-table">
-        <thead><tr><th>Название</th><th>URL</th><th></th></tr></thead>
+      <div class="admin-table-scroll admin-table-scroll--desktop">
+      <table class="admin-table admin-table--sortable">
+        <thead><tr><th></th><th>Название</th><th>URL</th><th></th></tr></thead>
         <tbody>
           <% videos.forEach(function(v) { %>
             <tr>
+              <td class="news-drag-cell">
+                <div class="news-order-controls">
+                  <form action="/admin/videos/move" method="post" class="news-move-form">
+                    <input type="hidden" name="id" value="<%= v.id %>">
+                    <input type="hidden" name="direction" value="up">
+                    <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                  </form>
+                  <form action="/admin/videos/move" method="post" class="news-move-form">
+                    <input type="hidden" name="id" value="<%= v.id %>">
+                    <input type="hidden" name="direction" value="down">
+                    <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                  </form>
+                </div>
+              </td>
               <td><%= v.title %></td>
               <td><a href="<%= v.youtube_url %>" target="_blank"><%= v.youtube_url %></a></td>
               <td>
@@ -39,6 +62,36 @@
           <% }); %>
         </tbody>
       </table>
+      </div>
+
+      <div class="admin-card-list admin-card-list--mobile">
+        <% videos.forEach(function(v) { %>
+          <article class="admin-card-item">
+            <div class="admin-card-item__top">
+              <div class="news-order-controls">
+                <form action="/admin/videos/move" method="post" class="news-move-form">
+                  <input type="hidden" name="id" value="<%= v.id %>">
+                  <input type="hidden" name="direction" value="up">
+                  <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                </form>
+                <form action="/admin/videos/move" method="post" class="news-move-form">
+                  <input type="hidden" name="id" value="<%= v.id %>">
+                  <input type="hidden" name="direction" value="down">
+                  <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                </form>
+              </div>
+              <div class="admin-card-item__meta">
+                <a href="<%= v.youtube_url %>" target="_blank">YouTube</a>
+              </div>
+            </div>
+            <h2 class="admin-card-item__title"><%= v.title %></h2>
+            <div class="btn-group admin-card-item__actions">
+              <form action="/admin/videos/<%= v.id %>/delete" method="post" onsubmit="return confirm('Удалить?')">
+                <button type="submit" class="btn btn--danger">Удалить</button>
+              </form>
+            </div>
+          </article>
+        <% }); %>
       </div>
     </div>
   </div>
