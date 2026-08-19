@@ -15,6 +15,7 @@
       <h1><%= title %></h1>
       <div class="form-card">
       <form method="post" enctype="multipart/form-data" action="<%= player ? '/admin/players/' + player.id : '/admin/players' %>">
+        <input type="hidden" name="is_graduate" value="<%= kind === 'graduate' ? '1' : '' %>">
         <div class="form-group">
           <label>ФИО</label>
           <input type="text" name="name" value="<%= player ? player.name : '' %>" required>
@@ -23,14 +24,18 @@
           <label>Дата рождения (ДД.ММ.ГГГГ)</label>
           <input type="text" name="birth_date" value="<%= player ? (player.birth_date || '') : '' %>">
         </div>
-        <div class="form-group">
-          <label>Амплуа</label>
-          <input type="text" name="position" value="<%= player ? (player.position || '') : '' %>">
-        </div>
-        <div class="form-group">
-          <label>Клуб</label>
-          <input type="text" name="club" value="<%= player ? (player.club || '') : '' %>">
-        </div>
+        <% if (kind === 'player') { %>
+          <div class="form-group">
+            <label>Амплуа</label>
+            <input type="text" name="position" value="<%= player ? (player.position || '') : '' %>">
+          </div>
+        <% } %>
+        <% if (kind === 'graduate') { %>
+          <div class="form-group">
+            <label>Клуб</label>
+            <input type="text" name="club" value="<%= player ? (player.club || '') : '' %>">
+          </div>
+        <% } %>
         <div class="form-group">
           <label>Биография</label>
           <textarea name="bio"><%= player ? (player.bio || '') : '' %></textarea>
@@ -39,36 +44,35 @@
           <label>Фото</label>
           <input type="file" name="photo" accept="image/*">
         </div>
-        <div class="form-group">
-          <label>Группы</label>
-          <% groups.forEach(function(g) { %>
-            <div class="form-check">
-              <input type="checkbox" name="group_ids" value="<%= g.id %>" id="g<%= g.id %>"
-                <%= player && player.groupIds && player.groupIds.includes(g.id) ? 'checked' : '' %>>
-              <label for="g<%= g.id %>"><%= g.name %></label>
-            </div>
-          <% }); %>
+        <% if (kind === 'player') { %>
+          <div class="form-group">
+            <label>Группы</label>
+            <% groups.forEach(function(g) { %>
+              <div class="form-check">
+                <input type="checkbox" name="group_ids" value="<%= g.id %>" id="g<%= g.id %>"
+                  <%= player && player.groupIds && player.groupIds.includes(g.id) ? 'checked' : '' %>>
+                <label for="g<%= g.id %>"><%= g.name %></label>
+              </div>
+            <% }); %>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" name="is_chudo_master" id="is_chudo_master" <%= player && player.is_chudo_master ? 'checked' : '' %>>
+            <label for="is_chudo_master">Чу-До Мастер (доп. занятия)</label>
+          </div>
+        <% } %>
+        <% if (kind === 'graduate') { %>
+          <div class="form-check">
+            <input type="checkbox" name="is_featured" id="is_featured" <%= player && player.is_featured ? 'checked' : '' %>>
+            <label for="is_featured">Показывать на главной</label>
+          </div>
+        <% } %>
+        <div class="btn-group">
+          <button type="submit" class="btn btn--primary">Сохранить</button>
+          <a href="<%= kind === 'graduate' ? '/admin/graduates' : '/admin/players' %>" class="btn btn--outline">Отмена</a>
         </div>
-        <div class="form-check">
-          <input type="checkbox" name="is_chudo_master" id="is_chudo_master" <%= player && player.is_chudo_master ? 'checked' : '' %>>
-          <label for="is_chudo_master">Чу-До Мастер (доп. занятия)</label>
-        </div>
-        <div class="form-check">
-          <input type="checkbox" name="is_graduate" id="is_graduate" <%= player && player.is_graduate ? 'checked' : '' %>>
-          <label for="is_graduate">Воспитанник (выпускник)</label>
-        </div>
-        <div class="form-check">
-          <input type="checkbox" name="is_featured" id="is_featured" <%= player && player.is_featured ? 'checked' : '' %>>
-          <label for="is_featured">Показывать на главной</label>
-        </div>
-        <div class="form-group">
-          <label>Порядок сортировки</label>
-          <input type="number" name="sort_order" value="<%= player ? player.sort_order : 0 %>">
-        </div>
-        <button type="submit" class="btn btn--primary">Сохранить</button>
       </form>
       <% if (player) { %>
-        <form method="post" action="/admin/players/<%= player.id %>/delete" style="margin-top:0.75rem" onsubmit="return confirm('Удалить этого игрока?')">
+        <form method="post" action="/admin/players/<%= player.id %>/delete" style="margin-top:0.75rem" onsubmit="return confirm('<%= kind === 'graduate' ? 'Удалить этого воспитанника?' : 'Удалить этого игрока?' %>')">
           <button type="submit" class="btn btn--danger">Удалить</button>
         </form>
       <% } %>

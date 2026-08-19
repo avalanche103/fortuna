@@ -112,9 +112,11 @@ const newsStorage = multer.diskStorage({
 });
 const uploadNewsImage = multer({
   storage: newsStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (/^image\/(jpeg|png|gif|webp|jpg)$/i.test(file.mimetype)) cb(null, true);
+    const mime = String(file.mimetype || '').toLowerCase();
+    const name = String(file.originalname || '').toLowerCase();
+    if (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp)$/.test(name)) cb(null, true);
     else cb(new Error('Только изображения (JPEG, PNG, GIF, WebP)'));
   },
 });
@@ -146,7 +148,8 @@ router.post('/logout', requireAdmin, (req: Request, res: Response) => {
 router.get('/', requireAdmin, async (_req: Request, res: Response) => {
   const stats = {
     news: (db.prepare('SELECT COUNT(*) as c FROM news').get() as { c: number }).c,
-    players: (db.prepare('SELECT COUNT(*) as c FROM players').get() as { c: number }).c,
+    players: (db.prepare('SELECT COUNT(*) as c FROM players WHERE is_graduate = 0').get() as { c: number }).c,
+    graduates: (db.prepare('SELECT COUNT(*) as c FROM players WHERE is_graduate = 1').get() as { c: number }).c,
     groups: (db.prepare('SELECT COUNT(*) as c FROM groups').get() as { c: number }).c,
     schedule: (db.prepare('SELECT COUNT(*) as c FROM schedule_months').get() as { c: number }).c,
     videos: (db.prepare('SELECT COUNT(*) as c FROM videos').get() as { c: number }).c,
@@ -303,7 +306,16 @@ router.get('/news/:id/edit', requireAdmin, (req, res) => {
 router.post('/news/upload-image', requireAdmin, (req, res) => {
   uploadNewsImage.single('image')(req, res, (err) => {
     if (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Ошибка загрузки' });
+      const tooBig =
+        (err as { code?: string }).code === 'LIMIT_FILE_SIZE' ||
+        /file too large/i.test(err instanceof Error ? err.message : '');
+      res.status(400).json({
+        error: tooBig
+          ? 'Картинка слишком большая. Сохраните JPEG или вставьте ещё раз — теперь она сожмётся сама.'
+          : err instanceof Error
+            ? err.message
+            : 'Ошибка загрузки',
+      });
       return;
     }
     if (!req.file) {
@@ -590,36 +602,188 @@ function parseLocationInput(body: Record<string, unknown>) {
   };
 }
 
-// --- Players ---
+// --- Players & graduates ---
+type AdminPlayerRow = {
+  id: number;
+  name: string;
+  birth_date: string | null;
+  club: string | null;
+  is_graduate: number;
+  is_featured: number;
+  is_chudo_master: number;
+  photo: string | null;
+  sort_order: number;
+};
+
+function playerListPath(isGraduate: boolean): string {
+  return isGraduate ? '/admin/graduates' : '/admin/players';
+}
+
+function loadPlayerGroupIds(playerId: number): number[] {
+  return queryRows<{ group_id: number }>(
+    db.prepare('SELECT group_id FROM group_players WHERE player_id = ?').all(playerId)
+  ).map((row) => row.group_id);
+}
+
+function nextGraduateSortOrder(): number {
+  const minSort = queryRow<{ value: number }>(
+    db.prepare(
+      'SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM players WHERE is_graduate = 1'
+    ).get()
+  );
+  return minSort?.value ?? 0;
+}
+
 router.get('/players', requireAdmin, (_req, res) => {
-  const players = db.prepare('SELECT * FROM players ORDER BY is_graduate DESC, sort_order, name').all();
-  res.render('admin/players-list', { title: 'Игроки', players });
+  const groups = getGroups();
+  const players = queryRows<AdminPlayerRow>(
+    db.prepare(
+      `SELECT id, name, birth_date, club, is_graduate, is_featured, is_chudo_master, photo, sort_order
+       FROM players WHERE is_graduate = 0 ORDER BY name COLLATE NOCASE`
+    ).all()
+  );
+  const memberships = queryRows<{ player_id: number; group_id: number }>(
+    db.prepare('SELECT player_id, group_id FROM group_players').all()
+  );
+  const byId = new Map(players.map((player) => [player.id, player]));
+  const byGroup = new Map<number, AdminPlayerRow[]>();
+  const groupedIds = new Set<number>();
+  for (const row of memberships) {
+    const player = byId.get(row.player_id);
+    if (!player) continue;
+    groupedIds.add(player.id);
+    const list = byGroup.get(row.group_id) || [];
+    list.push(player);
+    byGroup.set(row.group_id, list);
+  }
+  const grouped = groups
+    .map((group) => ({
+      id: group.id,
+      name: group.name,
+      slug: group.slug,
+      players: (byGroup.get(group.id) || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+    }))
+    .filter((group) => group.players.length > 0);
+  const ungrouped = players.filter((player) => !groupedIds.has(player.id));
+  res.render('admin/players-list', {
+    title: 'Игроки',
+    grouped,
+    ungrouped,
+    total: players.length,
+  });
+});
+
+router.get('/graduates', requireAdmin, (req, res) => {
+  const graduates = queryRows<AdminPlayerRow>(
+    db.prepare(
+      `SELECT id, name, birth_date, club, is_graduate, is_featured, is_chudo_master, photo, sort_order
+       FROM players WHERE is_graduate = 1 ORDER BY sort_order, name COLLATE NOCASE`
+    ).all()
+  );
+  res.render('admin/graduates-list', {
+    title: 'Воспитанники',
+    graduates,
+    moved: req.query.moved === '1',
+    moveError: req.query.error === 'move',
+  });
+});
+
+router.post('/graduates/move', requireAdmin, (req, res) => {
+  const id = parseInt(String(req.body.id ?? ''), 10);
+  const direction = req.body.direction === 'down' ? 'down' : 'up';
+  if (!Number.isFinite(id)) {
+    res.redirect('/admin/graduates?error=move');
+    return;
+  }
+
+  const graduates = queryRows<{ id: number }>(
+    db.prepare(
+      'SELECT id FROM players WHERE is_graduate = 1 ORDER BY sort_order, name COLLATE NOCASE'
+    ).all()
+  );
+  const index = graduates.findIndex((row) => row.id === id);
+  const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+  if (index < 0 || neighborIndex < 0 || neighborIndex >= graduates.length) {
+    res.redirect('/admin/graduates');
+    return;
+  }
+
+  const current = graduates[index];
+  graduates[index] = graduates[neighborIndex];
+  graduates[neighborIndex] = current;
+
+  const update = db.prepare('UPDATE players SET sort_order = ? WHERE id = ? AND is_graduate = 1');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    graduates.forEach((row, sortOrder) => update.run(sortOrder, row.id));
+    db.exec('COMMIT');
+    res.redirect('/admin/graduates?moved=1');
+  } catch {
+    db.exec('ROLLBACK');
+    res.redirect('/admin/graduates?error=move');
+  }
 });
 
 router.get('/players/new', requireAdmin, (_req, res) => {
-  res.render('admin/player-form', { title: 'Новый игрок', player: null, groups: getGroups() });
-});
-
-router.get('/players/:id/edit', requireAdmin, (req, res) => {
-  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id);
-  if (!player) {
-    res.status(404).send('Not found');
-    return;
-  }
-  const groupIds = queryRows<{ group_id: number }>(
-    db.prepare('SELECT group_id FROM group_players WHERE player_id = ?').all(req.params.id)
-  ).map((r) => r.group_id);
   res.render('admin/player-form', {
-    title: 'Редактировать игрока',
-    player: { ...player as object, groupIds },
+    title: 'Новый игрок',
+    player: null,
+    kind: 'player',
     groups: getRosterGroups(),
   });
 });
 
+router.get('/graduates/new', requireAdmin, (_req, res) => {
+  res.render('admin/player-form', {
+    title: 'Новый воспитанник',
+    player: null,
+    kind: 'graduate',
+    groups: [],
+  });
+});
+
+router.get('/players/:id/edit', requireAdmin, (req, res) => {
+  const player = queryRow<AdminPlayerRow>(db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id));
+  if (!player) {
+    res.status(404).send('Not found');
+    return;
+  }
+  if (player.is_graduate) {
+    res.redirect(`/admin/graduates/${player.id}/edit`);
+    return;
+  }
+  res.render('admin/player-form', {
+    title: 'Редактировать игрока',
+    player: { ...player, groupIds: loadPlayerGroupIds(player.id) },
+    kind: 'player',
+    groups: getRosterGroups(),
+  });
+});
+
+router.get('/graduates/:id/edit', requireAdmin, (req, res) => {
+  const player = queryRow<AdminPlayerRow>(db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id));
+  if (!player) {
+    res.status(404).send('Not found');
+    return;
+  }
+  if (!player.is_graduate) {
+    res.redirect(`/admin/players/${player.id}/edit`);
+    return;
+  }
+  res.render('admin/player-form', {
+    title: 'Редактировать воспитанника',
+    player: { ...player, groupIds: loadPlayerGroupIds(player.id) },
+    kind: 'graduate',
+    groups: [],
+  });
+});
+
 router.post('/players', requireAdmin, upload.single('photo'), (req, res) => {
-  const { name, birth_date, position, club, bio, is_graduate, is_featured, is_chudo_master, sort_order, group_ids } = req.body;
+  const { name, birth_date, position, club, bio, is_graduate, is_featured, is_chudo_master, group_ids } = req.body;
+  const isGraduate = Boolean(is_graduate);
   const slug = slugify(name, { lower: true, strict: true, locale: 'ru' });
   const photo = req.file ? `/uploads/${req.file.filename}` : null;
+  const sortOrder = isGraduate ? nextGraduateSortOrder() : 0;
   const result = db
     .prepare(
       `INSERT INTO players (name, slug, birth_date, position, club, bio, photo, is_graduate, is_featured, is_chudo_master, sort_order)
@@ -627,25 +791,52 @@ router.post('/players', requireAdmin, upload.single('photo'), (req, res) => {
     )
     .run(
       name, slug, birth_date || null, position || null, club || null, bio || null, photo,
-      is_graduate ? 1 : 0, is_featured ? 1 : 0, is_chudo_master ? 1 : 0, parseInt(sort_order, 10) || 0
+      isGraduate ? 1 : 0, is_featured ? 1 : 0, is_chudo_master ? 1 : 0, sortOrder
     );
-  syncPlayerGroups(Number(result.lastInsertRowid), group_ids);
-  res.redirect('/admin/players');
+  if (!isGraduate) syncPlayerGroups(Number(result.lastInsertRowid), group_ids);
+  res.redirect(playerListPath(isGraduate));
 });
 
 router.post('/players/:id', requireAdmin, upload.single('photo'), (req, res) => {
-  const { name, birth_date, position, club, bio, is_graduate, is_featured, is_chudo_master, sort_order, group_ids } = req.body;
-  const existing = db.prepare('SELECT photo FROM players WHERE id = ?').get(req.params.id) as { photo: string | null };
-  const photo = req.file ? `/uploads/${req.file.filename}` : existing?.photo;
+  const { name, birth_date, position, club, bio, is_graduate, is_featured, is_chudo_master, group_ids } = req.body;
+  const existing = queryRow<{
+    photo: string | null;
+    position: string | null;
+    club: string | null;
+    is_featured: number;
+    is_chudo_master: number;
+  }>(
+    db.prepare(
+      'SELECT photo, position, club, is_featured, is_chudo_master FROM players WHERE id = ?'
+    ).get(req.params.id)
+  );
+  if (!existing) {
+    res.status(404).send('Not found');
+    return;
+  }
+  const isGraduate = Boolean(is_graduate);
+  const photo = req.file ? `/uploads/${req.file.filename}` : existing.photo;
   db.prepare(
-    `UPDATE players SET name=?, birth_date=?, position=?, club=?, bio=?, photo=?, is_graduate=?, is_featured=?, is_chudo_master=?, sort_order=?
+    `UPDATE players SET name=?, birth_date=?, position=?, club=?, bio=?, photo=?, is_graduate=?, is_featured=?, is_chudo_master=?
      WHERE id=?`
   ).run(
-    name, birth_date || null, position || null, club || null, bio || null, photo,
-    is_graduate ? 1 : 0, is_featured ? 1 : 0, is_chudo_master ? 1 : 0, parseInt(sort_order, 10) || 0, req.params.id
+    name,
+    birth_date || null,
+    isGraduate ? existing.position : position || null,
+    isGraduate ? club || null : existing.club,
+    bio || null,
+    photo,
+    isGraduate ? 1 : 0,
+    isGraduate ? (is_featured ? 1 : 0) : existing.is_featured,
+    isGraduate ? existing.is_chudo_master : is_chudo_master ? 1 : 0,
+    req.params.id
   );
-  syncPlayerGroups(parseInt(req.params.id, 10), group_ids);
-  res.redirect('/admin/players');
+  if (isGraduate) {
+    db.prepare('DELETE FROM group_players WHERE player_id = ?').run(req.params.id);
+  } else {
+    syncPlayerGroups(parseInt(req.params.id, 10), group_ids);
+  }
+  res.redirect(playerListPath(isGraduate));
 });
 
 router.post('/players/:id/delete', requireAdmin, (req, res) => {
@@ -654,9 +845,12 @@ router.post('/players/:id/delete', requireAdmin, (req, res) => {
     res.status(404).send('Not found');
     return;
   }
+  const existing = queryRow<{ is_graduate: number }>(
+    db.prepare('SELECT is_graduate FROM players WHERE id = ?').get(id)
+  );
   db.prepare('DELETE FROM group_players WHERE player_id = ?').run(id);
   db.prepare('DELETE FROM players WHERE id = ?').run(id);
-  res.redirect('/admin/players');
+  res.redirect(playerListPath(Boolean(existing?.is_graduate)));
 });
 
 function syncPlayerGroups(playerId: number, groupIds: string | string[] | undefined): void {

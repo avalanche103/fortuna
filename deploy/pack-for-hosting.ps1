@@ -1,10 +1,11 @@
-# Pack site + SQLite for FTP deploy (no node_modules, no duplicated uploads).
+# Pack site for FTP deploy (no node_modules, no uploads, no SQLite by default).
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 $Out = Join-Path $Root 'dist-deploy'
 $Code = Join-Path $Out 'code'
+$IncludeDb = $args -contains '-IncludeDb'
 
 Write-Host 'Stop npm run dev first so SQLite can close WAL files.'
 
@@ -42,15 +43,19 @@ foreach ($file in @('package.json', 'package-lock.json', 'tsconfig.json', 'app.j
   }
 }
 
-$DataSrc = Join-Path $Root 'data'
 $DataDest = Join-Path $Code 'data'
 New-Item -ItemType Directory -Path $DataDest -Force | Out-Null
-foreach ($dbFile in @('fortuna.db', 'fortuna.db-wal', 'fortuna.db-shm')) {
-  $src = Join-Path $DataSrc $dbFile
-  if (Test-Path $src) {
-    Write-Host "Copy data/$dbFile"
-    Copy-Item $src (Join-Path $DataDest $dbFile)
+if ($IncludeDb) {
+  $DataSrc = Join-Path $Root 'data'
+  foreach ($dbFile in @('fortuna.db', 'fortuna.db-wal', 'fortuna.db-shm')) {
+    $src = Join-Path $DataSrc $dbFile
+    if (Test-Path $src) {
+      Write-Host "Copy data/$dbFile"
+      Copy-Item $src (Join-Path $DataDest $dbFile)
+    }
   }
+} else {
+  Write-Host 'Skip SQLite (use -IncludeDb to pack the database).'
 }
 
 Write-Host ''
@@ -61,7 +66,7 @@ if (Test-Path $Zip) { Remove-Item -Force $Zip }
 Compress-Archive -Path (Join-Path $Code '*') -DestinationPath $Zip -CompressionLevel Optimal
 Write-Host "Zip: $Zip"
 Write-Host 'Upload the folder or the zip to the Node app root (e.g. ~/fortuna).'
-Write-Host 'Then upload local public\uploads\ into ~/fortuna/public/uploads/ (about 5 GB, FileZilla).'
+Write-Host 'Do not overwrite data/fortuna.db on the server unless you pass -IncludeDb.'
 Write-Host 'On the server: npm ci --omit=dev'
 Write-Host 'See deploy/shared-hosting.md'
 exit 0

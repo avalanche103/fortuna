@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <div class="admin-header">
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Используйте ↑ ↓, чтобы изменить порядок воспитанников на сайте.</p>
+        </div>
+        <a href="/admin/graduates/new" class="btn btn--primary">+ Добавить</a>
+      </div>
+      <% if (moved) { %>
+        <p class="news-order-status" data-kind="success">Порядок сохранён.</p>
+      <% } else if (moveError) { %>
+        <p class="news-order-status" data-kind="error">Не удалось изменить порядок.</p>
+      <% } %>
+
+      <div class="admin-table-scroll admin-table-scroll--desktop">
+        <table class="admin-table admin-table--sortable">
+          <thead><tr><th></th><th>Имя</th><th>Клуб</th><th></th></tr></thead>
+          <tbody>
+            <% graduates.forEach(function(p) { %>
+              <tr>
+                <td class="news-drag-cell">
+                  <div class="news-order-controls">
+                    <form action="/admin/graduates/move" method="post" class="news-move-form">
+                      <input type="hidden" name="id" value="<%= p.id %>">
+                      <input type="hidden" name="direction" value="up">
+                      <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                    </form>
+                    <form action="/admin/graduates/move" method="post" class="news-move-form">
+                      <input type="hidden" name="id" value="<%= p.id %>">
+                      <input type="hidden" name="direction" value="down">
+                      <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                    </form>
+                  </div>
+                </td>
+                <td><%= p.name %><% if (p.is_featured) { %> <span class="news-home-badge">· главная</span><% } %></td>
+                <td><%= p.club || '—' %></td>
+                <td class="admin-table-actions">
+                  <div class="btn-group">
+                    <a href="/admin/graduates/<%= p.id %>/edit" class="btn btn--outline">Изменить</a>
+                    <form action="/admin/players/<%= p.id %>/delete" method="post" onsubmit="return confirm('Удалить этого воспитанника?')">
+                      <button type="submit" class="btn btn--danger">Удалить</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-card-list admin-card-list--mobile">
+        <% graduates.forEach(function(p) { %>
+          <article class="admin-card-item">
+            <div class="admin-card-item__top">
+              <div class="news-order-controls">
+                <form action="/admin/graduates/move" method="post" class="news-move-form">
+                  <input type="hidden" name="id" value="<%= p.id %>">
+                  <input type="hidden" name="direction" value="up">
+                  <button type="submit" class="news-move-up" title="Выше" aria-label="Выше">↑</button>
+                </form>
+                <form action="/admin/graduates/move" method="post" class="news-move-form">
+                  <input type="hidden" name="id" value="<%= p.id %>">
+                  <input type="hidden" name="direction" value="down">
+                  <button type="submit" class="news-move-down" title="Ниже" aria-label="Ниже">↓</button>
+                </form>
+              </div>
+              <div class="admin-card-item__meta">
+                <span><%= p.club || 'без клуба' %><% if (p.is_featured) { %> · главная<% } %></span>
+              </div>
+            </div>
+            <h2 class="admin-card-item__title"><%= p.name %></h2>
+            <div class="btn-group admin-card-item__actions">
+              <a href="/admin/graduates/<%= p.id %>/edit" class="btn btn--outline">Изменить</a>
+              <form action="/admin/players/<%= p.id %>/delete" method="post" onsubmit="return confirm('Удалить этого воспитанника?')">
+                <button type="submit" class="btn btn--danger">Удалить</button>
+              </form>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

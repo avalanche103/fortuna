@@ -308,7 +308,9 @@ async function getCloudPlatformToken(): Promise<string> {
   if (fromMetadata) return fromMetadata;
   const fromGcloud = await gcloudAccessToken();
   if (fromGcloud) return fromGcloud;
-  throw new Error('Не найден вход gcloud. Выполните: gcloud auth login');
+  throw new Error(
+    'Нет Google-учётных данных для API. На хостинге положите OAuth JSON в data/ga-credentials.json (права 600).'
+  );
 }
 
 async function impersonateAnalyticsToken(cloudToken: string): Promise<string> {
@@ -409,7 +411,7 @@ async function resolvePropertyId(): Promise<string> {
 }
 
 export function isGaConfigured(): boolean {
-  return Boolean(loadGaCredentials() || GA_IMPERSONATE_SA);
+  return Boolean(loadGaCredentials());
 }
 
 type GaReportResponse = {

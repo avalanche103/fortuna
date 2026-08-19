@@ -5,14 +5,86 @@
   const statusEl = document.getElementById('image-dropzone-status');
   const previews = document.getElementById('image-previews');
   const bodyField = document.getElementById('news-body');
+  const bodyStatus = document.getElementById('news-body-status');
   const toolbar = document.getElementById('news-editor-toolbar');
   if (!dropzone || !fileInput || !bodyField) return;
 
   function setStatus(text, isError) {
-    if (!statusEl) return;
-    statusEl.hidden = !text;
-    statusEl.textContent = text || '';
-    statusEl.classList.toggle('is-error', Boolean(isError));
+    [statusEl, bodyStatus].forEach((el) => {
+      if (!el) return;
+      el.hidden = !text;
+      el.textContent = text || '';
+      el.classList.toggle('is-error', Boolean(isError));
+    });
+  }
+
+  const newsForm = document.getElementById('news-form');
+  const submitBtn = newsForm?.querySelector('button[type="submit"]');
+  let uploadsInFlight = 0;
+  const MAX_IMAGE_EDGE = 1600;
+  const JPEG_QUALITY = 0.82;
+
+  function setUploading(active) {
+    uploadsInFlight += active ? 1 : -1;
+    if (uploadsInFlight < 0) uploadsInFlight = 0;
+    if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = uploadsInFlight > 0;
+  }
+
+  function namedImageFile(file) {
+    if (file.name && /\.[a-z0-9]+$/i.test(file.name)) return file;
+    const extByType = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/bmp': '.bmp',
+    };
+    const ext = extByType[file.type] || '.jpg';
+    return new File([file], 'image' + ext, { type: file.type || 'image/jpeg' });
+  }
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Не удалось прочитать картинку'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function compressImageFile(file) {
+    const type = String(file.type || '').toLowerCase();
+    if (type === 'image/gif' || type === 'image/svg+xml') return namedImageFile(file);
+    try {
+      const img = await loadImageFromFile(file);
+      const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return namedImageFile(file);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY)
+      );
+      if (!blob || blob.size === 0) return namedImageFile(file);
+      const base = String(file.name || 'image').replace(/\.[^.]+$/, '') || 'image';
+      return new File([blob], base + '.jpg', { type: 'image/jpeg' });
+    } catch {
+      return namedImageFile(file);
+    }
   }
 
   function insertAtCursor(textarea, html) {
@@ -169,44 +241,59 @@
   }
 
   async function uploadFiles(files, insertMode) {
-    const images = [...files].filter((file) => /^image\//i.test(file.type));
+    const images = [...files].filter((file) => !file.type || /^image\//i.test(file.type));
     if (!images.length) {
       setStatus('Нужны файлы изображений', true);
       return;
     }
 
     setStatus('Загрузка…');
+    setUploading(true);
     let uploaded = 0;
 
-    for (const file of images) {
-      const formData = new FormData();
-      formData.append('image', file);
-      try {
-        const response = await fetch('/admin/news/upload-image', {
-          method: 'POST',
-          body: formData,
-          credentials: 'same-origin',
-        });
-        const data = await response.json();
-        if (!response.ok || !data.url) {
-          throw new Error(data.error || 'Ошибка загрузки');
+    try {
+      for (const file of images) {
+        const formData = new FormData();
+        formData.append('image', await compressImageFile(file));
+        try {
+          const response = await fetch('/admin/news/upload-image', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+          });
+          const raw = await response.text();
+          let data = {};
+          try {
+            data = raw ? JSON.parse(raw) : {};
+          } catch {
+            throw new Error(
+              response.status === 413
+                ? 'Файл слишком большой для хостинга'
+                : 'Сервер не принял картинку'
+            );
+          }
+          if (!response.ok || !data.url) {
+            throw new Error(data.error || 'Ошибка загрузки');
+          }
+          appendPreview(data.url);
+          if (insertMode === 'cursor' || insertMode === 'append') {
+            insertAtCursor(bodyField, '<p><img src="' + data.url + '" alt=""></p>');
+          }
+          uploaded += 1;
+        } catch (err) {
+          setStatus(err instanceof Error ? err.message : 'Ошибка загрузки', true);
+          return;
         }
-        appendPreview(data.url);
-        if (insertMode === 'cursor' || insertMode === 'append') {
-          insertAtCursor(bodyField, '<p><img src="' + data.url + '" alt=""></p>');
-        }
-        uploaded += 1;
-      } catch (err) {
-        setStatus(err instanceof Error ? err.message : 'Ошибка загрузки', true);
-        return;
       }
-    }
 
-    setStatus(
-      uploaded === 1
-        ? 'Картинка загружена'
-        : 'Загружено картинок: ' + uploaded
-    );
+      setStatus(
+        uploaded === 1
+          ? 'Картинка загружена'
+          : 'Загружено картинок: ' + uploaded
+      );
+    } finally {
+      setUploading(false);
+    }
   }
 
   function preventDefaults(event) {
@@ -261,6 +348,8 @@
   const coverPreview = document.getElementById('cover-preview');
   const coverStatus = document.getElementById('cover-status');
   const coverRemove = document.getElementById('cover-remove');
+  const coverBrowse = document.getElementById('cover-browse');
+  const coverFileInput = document.getElementById('cover-file-input');
 
   function setCoverStatus(text, isError) {
     if (!coverStatus) return;
@@ -277,17 +366,17 @@
     if (coverRemove) coverRemove.hidden = !url;
   }
 
-  function namedImageFile(file) {
-    if (file.name && /\.[a-z0-9]+$/i.test(file.name)) return file;
-    const extByType = {
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/png': '.png',
-      'image/gif': '.gif',
-      'image/webp': '.webp',
-    };
-    const ext = extByType[file.type] || '.png';
-    return new File([file], 'cover' + ext, { type: file.type || 'image/png' });
+  function fileFromDataUrl(dataUrl) {
+    const match = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    if (!match) return null;
+    try {
+      const binary = atob(match[2]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return new File([bytes], 'cover.png', { type: match[1] });
+    } catch {
+      return null;
+    }
   }
 
   function filesFromClipboard(event) {
@@ -296,7 +385,7 @@
     if (!data) return files;
     if (data.files && data.files.length) {
       for (const file of data.files) {
-        if (/^image\//i.test(file.type)) files.push(file);
+        if (/^image\//i.test(file.type) || !file.type) files.push(file);
       }
     }
     if (!files.length && data.items) {
@@ -307,20 +396,41 @@
         }
       }
     }
+    if (!files.length) {
+      const html = data.getData('text/html') || '';
+      const text = data.getData('text/plain') || '';
+      const src = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || text;
+      const fromData = fileFromDataUrl(src);
+      if (fromData) files.push(fromData);
+    }
     return files;
   }
 
+  bodyField.addEventListener('paste', (event) => {
+    const files = filesFromClipboard(event);
+    if (!files.length) return;
+    event.preventDefault();
+    uploadFiles(files, 'cursor');
+  });
+
   async function uploadCover(file) {
-    setCoverStatus('Загрузка…');
+    setCoverStatus('Сжимаем и загружаем…');
+    setUploading(true);
     const formData = new FormData();
-    formData.append('image', namedImageFile(file));
+    formData.append('image', await compressImageFile(namedImageFile(file)));
     try {
       const response = await fetch('/admin/news/upload-image', {
         method: 'POST',
         body: formData,
         credentials: 'same-origin',
       });
-      const data = await response.json();
+      const raw = await response.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(response.status === 413 ? 'Файл слишком большой для хостинга' : 'Сервер не принял картинку');
+      }
       if (!response.ok || !data.url) {
         throw new Error(data.error || 'Ошибка загрузки');
       }
@@ -329,13 +439,15 @@
       if (coverCatcher) coverCatcher.value = '';
     } catch (err) {
       setCoverStatus(err instanceof Error ? err.message : 'Ошибка загрузки', true);
+    } finally {
+      setUploading(false);
     }
   }
 
   function onCoverPaste(event) {
     const files = filesFromClipboard(event);
     if (!files.length) {
-      setCoverStatus('В буфере нет картинки', true);
+      setCoverStatus('В буфере нет картинки — выберите файл', true);
       return;
     }
     event.preventDefault();
@@ -343,15 +455,32 @@
   }
 
   coverPaste?.addEventListener('click', (event) => {
-    if (event.target === coverRemove) return;
+    if (event.target === coverRemove || event.target === coverBrowse) return;
+    if (event.target instanceof HTMLElement && event.target.closest('#cover-browse, #cover-remove')) return;
     coverCatcher?.focus();
   });
 
   coverCatcher?.addEventListener('paste', onCoverPaste);
   coverPaste?.addEventListener('paste', onCoverPaste);
   coverPaste?.addEventListener('dragover', (event) => event.preventDefault());
-  coverPaste?.addEventListener('drop', (event) => event.preventDefault());
-  coverCatcher?.addEventListener('drop', (event) => event.preventDefault());
+  function onCoverDrop(event) {
+    event.preventDefault();
+    const dropped = [...(event.dataTransfer?.files || [])].filter((file) => /^image\//i.test(file.type) || !file.type);
+    if (dropped.length) uploadCover(dropped[0]);
+  }
+  coverPaste?.addEventListener('drop', onCoverDrop);
+  coverCatcher?.addEventListener('drop', onCoverDrop);
+
+  coverBrowse?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    coverFileInput?.click();
+  });
+  coverFileInput?.addEventListener('change', () => {
+    const file = coverFileInput.files && coverFileInput.files[0];
+    if (file) uploadCover(file);
+    coverFileInput.value = '';
+  });
 
   coverRemove?.addEventListener('click', (event) => {
     event.preventDefault();

@@ -1,0 +1,17 @@
+<ul class="admin-person-list">
+  <% list.forEach(function(p) { %>
+    <li class="admin-person" data-player-name="<%= String(p.name).toLowerCase() %>">
+      <div class="admin-person__info">
+        <strong><%= p.name %></strong>
+        <% if (p.birth_date) { %><span><%= p.birth_date %></span><% } %>
+        <% if (p.is_chudo_master) { %><span class="admin-person__tag">Чу-До</span><% } %>
+      </div>
+      <div class="btn-group">
+        <a href="/admin/players/<%= p.id %>/edit" class="btn btn--outline">Изменить</a>
+        <form action="/admin/players/<%= p.id %>/delete" method="post" onsubmit="return confirm('Удалить этого игрока?')">
+          <button type="submit" class="btn btn--danger">Удалить</button>
+        </form>
+      </div>
+    </li>
+  <% }); %>
+</ul>

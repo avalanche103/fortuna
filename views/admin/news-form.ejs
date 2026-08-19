@@ -32,18 +32,22 @@
           <div class="cover-paste" id="cover-paste">
             <textarea class="cover-paste__catcher" id="cover-catcher" aria-label="Вставить заглавную картинку из буфера обмена"></textarea>
             <div class="cover-paste__empty" id="cover-empty" <%= coverImage ? 'hidden' : '' %>>
-              <p class="cover-paste__title">Нажмите сюда и вставьте картинку</p>
-              <p class="cover-paste__hint">Ctrl+V / Cmd+V — из буфера обмена, без перетаскивания</p>
+              <p class="cover-paste__title">Вставьте картинку или выберите файл</p>
+              <p class="cover-paste__hint">Ctrl+V / Cmd+V из буфера или выберите файл. Большие фото сжимаются сами</p>
             </div>
             <div class="cover-paste__filled" id="cover-filled" <%= coverImage ? '' : 'hidden' %>>
               <img id="cover-preview" src="<%= coverImage || '' %>" alt="Заглавная картинка">
-              <p class="cover-paste__hint">Нажмите сюда и вставьте другую картинку (Ctrl+V)</p>
+              <p class="cover-paste__hint">Вставьте другую картинку (Ctrl+V) или выберите файл</p>
             </div>
-            <button type="button" class="btn btn--outline cover-paste__remove" id="cover-remove" <%= coverImage ? '' : 'hidden' %>>Убрать</button>
+            <div class="cover-paste__actions">
+              <button type="button" class="btn btn--outline" id="cover-browse">Выбрать файл</button>
+              <button type="button" class="btn btn--outline cover-paste__remove" id="cover-remove" <%= coverImage ? '' : 'hidden' %>>Убрать</button>
+            </div>
+            <input type="file" id="cover-file-input" accept="image/jpeg,image/png,image/gif,image/webp,image/*" hidden>
             <p class="cover-paste__status" id="cover-status" hidden></p>
           </div>
         </div>
-        <div class="form-group">
+        <div class="form-group" hidden>
           <label>Картинки</label>
           <div class="image-dropzone" id="image-dropzone">
             <input type="file" id="image-file-input" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
@@ -68,7 +72,8 @@
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="quote">Цитата</button>
           </div>
           <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? bodyHtml : '' %></textarea>
-          <p class="form-hint">Можно перетащить картинку в поле текста. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
+          <p class="form-hint">Можно вставить картинку из буфера (Ctrl+V) или перетащить файл в поле текста. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
+          <p class="cover-paste__status" id="news-body-status" hidden></p>
         </div>
         <div class="form-group">
           <label>Дата публикации</label>

@@ -35,7 +35,6 @@
       <% if (!selectedGroup) { %>
         <div class="schedule-empty schedule-empty--mobile-only">
           <h2>Выберите группу</h2>
-          <p>На телефоне расписание показывается отдельно для каждой группы.</p>
         </div>
       <% } %>
 
@@ -59,7 +58,7 @@
             <tbody>
               <% for (let day = firstVisibleDay; day <= daysInMonth; day += 1) {
                 const date = new Date(Date.UTC(displayYear, displayMonth - 1, day));
-                const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date);
+                const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', timeZone: 'UTC' }).format(date);
               %>
                 <tr>
                   <th scope="row" class="day-cell"><strong><%= day %></strong><small><%= weekday %></small></th>

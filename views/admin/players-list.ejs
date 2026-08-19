@@ -13,31 +13,66 @@
     <%- include('sidebar') %>
     <div class="admin-main">
       <div class="admin-header">
-        <h1><%= title %></h1>
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Игроки по группам. Введите фамилию или перейдите к группе.</p>
+        </div>
         <a href="/admin/players/new" class="btn btn--primary">+ Добавить</a>
       </div>
-      <div class="admin-table-scroll">
-      <table class="admin-table">
-        <thead><tr><th>Имя</th><th>Группа / статус</th><th></th></tr></thead>
-        <tbody>
-          <% players.forEach(function(p) { %>
-            <tr>
-              <td><%= p.name %></td>
-              <td><%= p.is_graduate ? 'Воспитанник' : 'Игрок' %></td>
-              <td class="admin-table-actions">
-                <div class="btn-group">
-                  <a href="/admin/players/<%= p.id %>/edit" class="btn btn--outline">Изменить</a>
-                  <form action="/admin/players/<%= p.id %>/delete" method="post" onsubmit="return confirm('Удалить этого игрока?')">
-                    <button type="submit" class="btn btn--danger">Удалить</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
+
+      <div class="admin-filter-bar">
+        <input type="search" id="player-filter" class="admin-filter" placeholder="Поиск по имени" autocomplete="off">
+        <span class="admin-filter-count"><%= total %> чел.</span>
       </div>
+
+      <% if (grouped.length) { %>
+        <nav class="admin-jump-nav" aria-label="Группы">
+          <% grouped.forEach(function(group) { %>
+            <a href="#group-<%= group.slug %>"><%= group.name %> <span><%= group.players.length %></span></a>
+          <% }); %>
+          <% if (ungrouped.length) { %>
+            <a href="#group-none">Без группы <span><%= ungrouped.length %></span></a>
+          <% } %>
+        </nav>
+      <% } %>
+
+      <% grouped.forEach(function(group) { %>
+        <section class="admin-group-block" id="group-<%= group.slug %>" data-group-block>
+          <h2 class="admin-group-block__title"><%= group.name %> <span><%= group.players.length %></span></h2>
+          <%- include('player-rows', { list: group.players }) %>
+        </section>
+      <% }); %>
+
+      <% if (ungrouped.length) { %>
+        <section class="admin-group-block" id="group-none" data-group-block>
+          <h2 class="admin-group-block__title">Без группы <span><%= ungrouped.length %></span></h2>
+          <%- include('player-rows', { list: ungrouped }) %>
+        </section>
+      <% } %>
+
+      <% if (!total) { %>
+        <p class="admin-empty">Игроков пока нет.</p>
+      <% } %>
     </div>
   </div>
+  <script>
+  (function () {
+    var input = document.getElementById('player-filter');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var query = input.value.trim().toLowerCase();
+      document.querySelectorAll('[data-player-name]').forEach(function (row) {
+        var name = row.getAttribute('data-player-name') || '';
+        row.hidden = Boolean(query) && name.indexOf(query) === -1;
+      });
+      document.querySelectorAll('[data-group-block]').forEach(function (block) {
+        var visible = Array.prototype.some.call(block.querySelectorAll('[data-player-name]'), function (row) {
+          return !row.hidden;
+        });
+        block.hidden = Boolean(query) && !visible;
+      });
+    });
+  })();
+  </script>
 </body>
 </html>
