@@ -78,7 +78,7 @@
                               <strong class="schedule-session__time"><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong>
                             <% } %>
                             <span class="schedule-session__location"><%= slot.location_name || 'Площадка не указана' %></span>
-                            <% if (slot.note) { %><small class="schedule-session__note"><%= slot.note %></small><% } %>
+                            <% if (slot.note) { %><span class="schedule-session__note"><%= slot.note %></span><% } %>
                           </div>
                           <% if (isDouble) { %>
                             <div class="schedule-session__shift" style="--location-color:<%= color2 %>;--location-text:<%= scheduleTextColor(color2) %>">
@@ -86,7 +86,7 @@
                                 <strong class="schedule-session__time"><%= slot.time_start_2 %><%= slot.time_end_2 ? '–' + slot.time_end_2 : '' %></strong>
                               <% } %>
                               <span class="schedule-session__location"><%= slot.location_name_2 || 'Площадка не указана' %></span>
-                              <% if (slot.note_2) { %><small class="schedule-session__note"><%= slot.note_2 %></small><% } %>
+                              <% if (slot.note_2) { %><span class="schedule-session__note"><%= slot.note_2 %></span><% } %>
                             </div>
                           <% } %>
                         </article>
@@ -118,13 +118,13 @@
                   <div class="schedule-mobile-card__shift" style="--location-color:<%= color %>;--location-text:<%= scheduleTextColor(color) %>">
                     <% if (slot.time_start) { %><strong><%= slot.time_start %><%= slot.time_end ? '–' + slot.time_end : '' %></strong><% } %>
                     <span><%= slot.location_name || 'Площадка не указана' %></span>
-                    <% if (slot.note) { %><small><%= slot.note %></small><% } %>
+                    <% if (slot.note) { %><span><%= slot.note %></span><% } %>
                   </div>
                   <% if (isDouble) { %>
                     <div class="schedule-mobile-card__shift" style="--location-color:<%= color2 %>;--location-text:<%= scheduleTextColor(color2) %>">
                       <% if (slot.time_start_2) { %><strong><%= slot.time_start_2 %><%= slot.time_end_2 ? '–' + slot.time_end_2 : '' %></strong><% } %>
                       <span><%= slot.location_name_2 || 'Площадка не указана' %></span>
-                      <% if (slot.note_2) { %><small><%= slot.note_2 %></small><% } %>
+                      <% if (slot.note_2) { %><span><%= slot.note_2 %></span><% } %>
                     </div>
                   <% } %>
                 </div>

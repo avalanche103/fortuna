@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import db, { runMigrations } from './index';
 
 function getSettingValue(key: string, fallback = ''): string {
@@ -29,9 +29,17 @@ export function ensureNaborNews(): void {
 export function ensureSeedData(): void {
   const adminExists = db.prepare('SELECT id FROM admins LIMIT 1').get();
   if (!adminExists) {
-    const hash = bcrypt.hashSync('admin', 10);
-    db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run('admin', hash);
-    console.log('Default admin created: admin / admin (change in production!)');
+    const username = (process.env.ADMIN_USERNAME || 'fortuna').trim();
+    const password = process.env.ADMIN_PASSWORD;
+    if (!password) {
+      console.warn(
+        'No admin user yet. Create .admin-pass (one line) or set ADMIN_PASSWORD, then: npm run db:set-admin'
+      );
+    } else {
+      const hash = bcrypt.hashSync(password, 10);
+      db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run(username, hash);
+      console.log(`Default admin created: ${username}`);
+    }
   }
 
   const settings = [
@@ -95,4 +103,5 @@ if (require.main === module) {
   runMigrations();
   ensureSeedData();
   console.log('Seed data applied.');
+  db.close();
 }

@@ -222,12 +222,26 @@ export function getGruppyGroups(): Group[] {
   return getGroups();
 }
 
+/** Старшие годы рождения первыми, внутри года — по алфавиту. */
+function playerGroupOrderSql(alias?: string): string {
+  const birth = alias ? `${alias}.birth_date` : 'birth_date';
+  const name = alias ? `${alias}.name` : 'name';
+  return `
+    CASE
+      WHEN ${birth} IS NULL OR trim(${birth}) = '' THEN 1
+      ELSE 0
+    END,
+    CAST(substr(trim(${birth}), -4) AS INTEGER) ASC,
+    ${name} COLLATE NOCASE
+  `;
+}
+
 export function getChudoMasterPlayers(): Player[] {
   return queryRows<Player>(
     db.prepare(
       `SELECT * FROM players
        WHERE is_chudo_master = 1 AND is_graduate = 0
-       ORDER BY name`
+       ORDER BY ${playerGroupOrderSql()}`
     ).all()
   );
 }
@@ -263,7 +277,7 @@ export function getGroupPlayers(groupId: number): Player[] {
        FROM players p
        JOIN group_players gp ON gp.player_id = p.id
        WHERE gp.group_id = ?
-       ORDER BY gp.number, p.name`
+       ORDER BY ${playerGroupOrderSql('p')}`
     ).all(groupId)
   );
 }

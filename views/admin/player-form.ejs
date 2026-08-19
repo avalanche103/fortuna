@@ -13,7 +13,8 @@
     <%- include('sidebar') %>
     <div class="admin-main">
       <h1><%= title %></h1>
-      <form class="form-card" method="post" enctype="multipart/form-data" action="<%= player ? '/admin/players/' + player.id : '/admin/players' %>">
+      <div class="form-card">
+      <form method="post" enctype="multipart/form-data" action="<%= player ? '/admin/players/' + player.id : '/admin/players' %>">
         <div class="form-group">
           <label>ФИО</label>
           <input type="text" name="name" value="<%= player ? player.name : '' %>" required>
@@ -66,6 +67,12 @@
         </div>
         <button type="submit" class="btn btn--primary">Сохранить</button>
       </form>
+      <% if (player) { %>
+        <form method="post" action="/admin/players/<%= player.id %>/delete" style="margin-top:0.75rem" onsubmit="return confirm('Удалить этого игрока?')">
+          <button type="submit" class="btn btn--danger">Удалить</button>
+        </form>
+      <% } %>
+      </div>
     </div>
   </div>
 </body>

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-deploy/
 data/*.db
 data/*.db-*
 public/uploads/*
@@ -8,3 +9,6 @@ tmp-*.html
 *.log
 .env
 .env.*
+data/ga-credentials.json
+fortuna-hosting-*.zip
+fortuna-hosting-*.tar

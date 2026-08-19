@@ -1,5 +1,6 @@
 import express from 'express';
 import session from 'express-session';
+import fs from 'fs';
 import path from 'path';
 import { runMigrations } from './db';
 import { ensureSeedData } from './db/seed';
@@ -60,6 +61,30 @@ app.use((_req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`FC Fortuna running at http://0.0.0.0:${PORT}`);
-});
+declare const PhusionPassenger: { configure: (opts: { autoInstall: boolean }) => void } | undefined;
+
+function startServer(): void {
+  if (typeof PhusionPassenger !== 'undefined') {
+    PhusionPassenger.configure({ autoInstall: false });
+    app.listen('passenger');
+    console.log('FC Fortuna running under Passenger');
+    return;
+  }
+
+  const socket = process.env.SOCKET;
+  if (socket) {
+    if (fs.existsSync(socket)) fs.unlinkSync(socket);
+    app.listen(socket, () => {
+      fs.chmodSync(socket, 0o660);
+      console.log(`FC Fortuna listening on socket ${socket}`);
+    });
+    return;
+  }
+
+  const host = process.env.INSTANCE_HOST || '0.0.0.0';
+  app.listen(PORT, host, () => {
+    console.log(`FC Fortuna running at http://${host}:${PORT}`);
+  });
+}
+
+startServer();

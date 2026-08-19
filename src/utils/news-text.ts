@@ -69,3 +69,16 @@ export function stripNewsCoverFromBody(
   }
   return result.replace(/<p>\s*<\/p>/gi, '').trim();
 }
+
+function escapeHtmlAttr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+/** Ставит заглавную картинку первым изображением в теле новости. */
+export function applyNewsCover(body: string | null | undefined, coverSrc: string | null | undefined): string {
+  const currentCover = getNewsCoverImage(body);
+  const nextBody = stripNewsCoverFromBody(body, currentCover);
+  const cover = (coverSrc || '').trim();
+  if (!cover) return nextBody;
+  return `<p><img src="${escapeHtmlAttr(cover)}" alt=""></p>\n${nextBody}`.trim();
+}

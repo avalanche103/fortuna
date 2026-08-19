@@ -23,9 +23,11 @@
         <a href="/gruppy" class="<%= currentPath.startsWith('/gruppy') ? 'active' : '' %>">Группы</a>
         <% if (Array.isArray(navGroups) && navGroups.length) { %>
           <div class="nav__submenu">
+            <div class="nav__submenu-inner">
             <% navGroups.forEach(function(group) { %>
               <a href="/gruppy/<%= group.slug %>" class="<%= currentPath === '/gruppy/' + group.slug ? 'active' : '' %>"><%= group.name %></a>
             <% }); %>
+            </div>
           </div>
         <% } %>
       </div>

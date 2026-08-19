@@ -37,40 +37,69 @@
 
       <section class="vizitka-admin-block">
         <h2 class="vizitka-admin-block__title">Тренеры</h2>
-        <p class="vizitka-admin-block__hint">Три колонки с фото и описанием. Перенос строки в имени сохраняется.</p>
+        <p class="vizitka-admin-block__hint">Карточки с фото и описанием. Перенос строки в имени сохраняется.</p>
         <div class="vizitka-admin-coaches">
           <% coaches.forEach(function(coach) { %>
-            <form class="form-card vizitka-admin-coach" method="post" action="/admin/vizitka/coach/<%= coach.id %>" enctype="multipart/form-data">
-              <% if (coach.photo) { %>
-                <img class="vizitka-admin-coach__photo" src="<%= coach.photo %>" alt="<%= coach.name %>">
-              <% } else { %>
-                <div class="vizitka-admin-coach__photo vizitka-admin-coach__photo--empty">Нет фото</div>
-              <% } %>
+            <article class="form-card vizitka-admin-coach">
+              <form method="post" action="/admin/vizitka/coach/<%= coach.id %>" enctype="multipart/form-data">
+                <% if (coach.photo) { %>
+                  <img class="vizitka-admin-coach__photo" src="<%= coach.photo %>" alt="<%= coach.name %>">
+                <% } else { %>
+                  <div class="vizitka-admin-coach__photo vizitka-admin-coach__photo--empty">Нет фото</div>
+                <% } %>
+                <div class="form-group">
+                  <label>Должность</label>
+                  <input type="text" name="role" value="<%= coach.role %>">
+                </div>
+                <div class="form-group">
+                  <label>Имя</label>
+                  <textarea name="name" rows="3" required><%= coach.name %></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Описание</label>
+                  <textarea name="bio" rows="10"><%= coach.bio %></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Фото</label>
+                  <input type="file" name="photo" accept="image/*">
+                  <% if (coach.photo) { %>
+                    <label class="form-check" style="margin-top:0.5rem;">
+                      <input type="checkbox" name="remove_photo" value="1">
+                      Удалить текущее фото
+                    </label>
+                  <% } %>
+                </div>
+                <button type="submit" class="btn btn--primary">Сохранить</button>
+              </form>
+              <form class="vizitka-admin-coach__delete" method="post" action="/admin/vizitka/coach/<%= coach.id %>/delete" onsubmit="return confirm('Удалить этого тренера с визитки?')">
+                <button type="submit" class="btn btn--danger">Удалить</button>
+              </form>
+            </article>
+          <% }); %>
+
+          <article class="form-card vizitka-admin-coach vizitka-admin-coach--new">
+            <h3 class="vizitka-admin-coach__heading">Новый тренер</h3>
+            <form method="post" action="/admin/vizitka/coach" enctype="multipart/form-data">
+              <div class="vizitka-admin-coach__photo vizitka-admin-coach__photo--empty">Нет фото</div>
               <div class="form-group">
                 <label>Должность</label>
-                <input type="text" name="role" value="<%= coach.role %>">
+                <input type="text" name="role" placeholder="Например, тренер-преподаватель">
               </div>
               <div class="form-group">
                 <label>Имя</label>
-                <textarea name="name" rows="3" required><%= coach.name %></textarea>
+                <textarea name="name" rows="3" required placeholder="ФИО, как на визитке"></textarea>
               </div>
               <div class="form-group">
                 <label>Описание</label>
-                <textarea name="bio" rows="10" required><%= coach.bio %></textarea>
+                <textarea name="bio" rows="10" placeholder="Краткое описание"></textarea>
               </div>
               <div class="form-group">
                 <label>Фото</label>
                 <input type="file" name="photo" accept="image/*">
-                <% if (coach.photo) { %>
-                  <label class="form-check" style="margin-top:0.5rem;">
-                    <input type="checkbox" name="remove_photo" value="1">
-                    Удалить текущее фото
-                  </label>
-                <% } %>
               </div>
-              <button type="submit" class="btn btn--primary">Сохранить</button>
+              <button type="submit" class="btn btn--primary">Добавить</button>
             </form>
-          <% }); %>
+          </article>
         </div>
       </section>
 

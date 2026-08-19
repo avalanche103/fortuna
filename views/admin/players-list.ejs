@@ -24,7 +24,14 @@
             <tr>
               <td><%= p.name %></td>
               <td><%= p.is_graduate ? 'Воспитанник' : 'Игрок' %></td>
-              <td><a href="/admin/players/<%= p.id %>/edit" class="btn btn--outline">Изменить</a></td>
+              <td class="admin-table-actions">
+                <div class="btn-group">
+                  <a href="/admin/players/<%= p.id %>/edit" class="btn btn--outline">Изменить</a>
+                  <form action="/admin/players/<%= p.id %>/delete" method="post" onsubmit="return confirm('Удалить этого игрока?')">
+                    <button type="submit" class="btn btn--danger">Удалить</button>
+                  </form>
+                </div>
+              </td>
             </tr>
           <% }); %>
         </tbody>

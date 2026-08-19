@@ -27,6 +27,23 @@
           <textarea name="excerpt"><%= article ? (article.excerpt || '') : '' %></textarea>
         </div>
         <div class="form-group">
+          <label for="cover-catcher">Заглавная картинка</label>
+          <input type="hidden" name="cover_image" id="cover-image-input" value="<%= coverImage || '' %>">
+          <div class="cover-paste" id="cover-paste">
+            <textarea class="cover-paste__catcher" id="cover-catcher" aria-label="Вставить заглавную картинку из буфера обмена"></textarea>
+            <div class="cover-paste__empty" id="cover-empty" <%= coverImage ? 'hidden' : '' %>>
+              <p class="cover-paste__title">Нажмите сюда и вставьте картинку</p>
+              <p class="cover-paste__hint">Ctrl+V / Cmd+V — из буфера обмена, без перетаскивания</p>
+            </div>
+            <div class="cover-paste__filled" id="cover-filled" <%= coverImage ? '' : 'hidden' %>>
+              <img id="cover-preview" src="<%= coverImage || '' %>" alt="Заглавная картинка">
+              <p class="cover-paste__hint">Нажмите сюда и вставьте другую картинку (Ctrl+V)</p>
+            </div>
+            <button type="button" class="btn btn--outline cover-paste__remove" id="cover-remove" <%= coverImage ? '' : 'hidden' %>>Убрать</button>
+            <p class="cover-paste__status" id="cover-status" hidden></p>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Картинки</label>
           <div class="image-dropzone" id="image-dropzone">
             <input type="file" id="image-file-input" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
@@ -45,12 +62,13 @@
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="h3">H3</button>
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="link">Ссылка</button>
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="youtube">YouTube</button>
+            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="reel">Reels</button>
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ul">Список UL</button>
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ol">Список OL</button>
             <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="quote">Цитата</button>
           </div>
-          <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? article.body : '' %></textarea>
-          <p class="form-hint">Можно перетащить картинку в поле текста. Для YouTube нажмите кнопку "YouTube" и вставьте ссылку.</p>
+          <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? bodyHtml : '' %></textarea>
+          <p class="form-hint">Можно перетащить картинку в поле текста. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
         </div>
         <div class="form-group">
           <label>Дата публикации</label>

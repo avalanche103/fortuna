@@ -20,7 +20,7 @@ bash deploy/gcp/create-vm.sh
 Скрипт поднимет `e2-micro` в `us-central1-a`, откроет порт 80 и по startup-script поставит Docker + сайт.  
 БД и uploads хранятся в **`/var/lib/fortuna`** на диске VM — переживают обновления контейнера.
 
-3. Откройте `http://EXTERNAL_IP/` и `/admin` (`admin` / `admin`), сразу смените пароль.
+3. Откройте `http://EXTERNAL_IP/` и `/admin` (логин `fortuna`; пароль задайте через `.admin-pass` и `npm run db:set-admin`).
 
 ## Обновить код после пуша в GitHub
 

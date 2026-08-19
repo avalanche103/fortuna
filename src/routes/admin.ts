@@ -17,6 +17,7 @@ import {
   getScheduleEntries,
   getScheduleLocation,
   getScheduleLocations,
+  getCurrentScheduleMonth,
   getScheduleMonth,
   getScheduleMonths,
   getSettings,
@@ -29,6 +30,20 @@ import {
 import type { ScheduleSlotInput } from '../services/content';
 import { createDiplomaPdf } from '../services/diploma';
 import { resolveYoutubeTitle } from '../utils/youtube';
+import { applyNewsCover, getNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
+import {
+  credentialsEmail,
+  formatGaDuration,
+  formatGaNumber,
+  formatGaPercent,
+  getGaReport,
+  getGaTodayStats,
+  getStoredPropertyId,
+  isGaConfigured,
+  parsePeriod,
+  savePropertyId,
+  GA_MEASUREMENT_ID,
+} from '../services/ga';
 
 ensureDataDirs();
 const uploadDir = UPLOAD_DIR;
@@ -128,7 +143,7 @@ router.post('/logout', requireAdmin, (req: Request, res: Response) => {
   req.session.destroy(() => res.redirect('/admin/login'));
 });
 
-router.get('/', requireAdmin, (_req: Request, res: Response) => {
+router.get('/', requireAdmin, async (_req: Request, res: Response) => {
   const stats = {
     news: (db.prepare('SELECT COUNT(*) as c FROM news').get() as { c: number }).c,
     players: (db.prepare('SELECT COUNT(*) as c FROM players').get() as { c: number }).c,
@@ -136,7 +151,39 @@ router.get('/', requireAdmin, (_req: Request, res: Response) => {
     schedule: (db.prepare('SELECT COUNT(*) as c FROM schedule_months').get() as { c: number }).c,
     videos: (db.prepare('SELECT COUNT(*) as c FROM videos').get() as { c: number }).c,
   };
-  res.render('admin/dashboard', { title: 'Панель', stats });
+  const analytics = await getGaTodayStats();
+  res.render('admin/dashboard', { title: 'Панель', stats, analytics, formatGaNumber });
+});
+
+router.get('/analytics', requireAdmin, async (req, res) => {
+  const period = parsePeriod(req.query.period);
+  const report = await getGaReport(period);
+  res.render('admin/analytics', {
+    title: 'Аналитика',
+    report,
+    period,
+    saved: req.query.saved === '1',
+    connectError: typeof req.query.error === 'string' ? req.query.error : '',
+    measurementId: GA_MEASUREMENT_ID,
+    propertyId: getStoredPropertyId(),
+    credentialsEmail: credentialsEmail(),
+    configured: isGaConfigured(),
+    formatGaNumber,
+    formatGaPercent,
+    formatGaDuration,
+  });
+});
+
+router.post('/analytics/connect', requireAdmin, (req, res) => {
+  try {
+    const propertyId = String(req.body.property_id || '').trim();
+    if (propertyId) savePropertyId(propertyId);
+    res.redirect('/admin/analytics?saved=1');
+  } catch (error) {
+    res.redirect(
+      '/admin/analytics?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Не удалось сохранить')
+    );
+  }
 });
 
 // --- News ---
@@ -237,16 +284,20 @@ router.post('/news/reorder', requireAdmin, (req, res) => {
 });
 
 router.get('/news/new', requireAdmin, (_req, res) => {
-  res.render('admin/news-form', { title: 'Новая новость', article: null });
+  res.render('admin/news-form', { title: 'Новая новость', article: null, coverImage: '', bodyHtml: '' });
 });
 
 router.get('/news/:id/edit', requireAdmin, (req, res) => {
-  const article = db.prepare('SELECT * FROM news WHERE id = ?').get(req.params.id);
+  const article = db.prepare('SELECT * FROM news WHERE id = ?').get(req.params.id) as
+    | { body: string }
+    | undefined;
   if (!article) {
     res.status(404).send('Not found');
     return;
   }
-  res.render('admin/news-form', { title: 'Редактировать новость', article });
+  const coverImage = getNewsCoverImage(article.body) || '';
+  const bodyHtml = stripNewsCoverFromBody(article.body, coverImage);
+  res.render('admin/news-form', { title: 'Редактировать новость', article, coverImage, bodyHtml });
 });
 
 router.post('/news/upload-image', requireAdmin, (req, res) => {
@@ -264,26 +315,28 @@ router.post('/news/upload-image', requireAdmin, (req, res) => {
 });
 
 router.post('/news', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, published_at, is_pinned } = req.body;
+  const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
   const slug = slugify(title, { lower: true, strict: true, locale: 'ru' });
   const newsCategory = category || 'novosti';
   const minSort = queryRow<{ value: number }>(
     db.prepare('SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM news WHERE category != ?').get('nabor')
   );
   const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
+  const nextBody = applyNewsCover(body, cover_image);
   db.prepare(
     `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(title, slug, newsCategory, excerpt || null, body, is_pinned ? 1 : 0, sortOrder, published_at);
+  ).run(title, slug, newsCategory, excerpt || null, nextBody, is_pinned ? 1 : 0, sortOrder, published_at);
   res.redirect('/admin/news');
 });
 
 router.post('/news/:id', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, published_at, is_pinned } = req.body;
+  const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
+  const nextBody = applyNewsCover(body, cover_image);
   db.prepare(
     `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, published_at=?, updated_at=datetime('now')
      WHERE id=?`
-  ).run(title, category || 'novosti', excerpt || null, body, is_pinned ? 1 : 0, published_at, req.params.id);
+  ).run(title, category || 'novosti', excerpt || null, nextBody, is_pinned ? 1 : 0, published_at, req.params.id);
   res.redirect('/admin/news');
 });
 
@@ -329,6 +382,7 @@ router.get('/schedule', requireAdmin, (req, res) => {
   const requestedMonth = parseInt(String(req.query.month ?? ''), 10);
   const selected =
     (isValidYearMonth(requestedYear, requestedMonth) && getScheduleMonth(requestedYear, requestedMonth)) ||
+    getCurrentScheduleMonth() ||
     months[0];
   res.render('admin/schedule', {
     title: 'Расписание',
@@ -594,6 +648,17 @@ router.post('/players/:id', requireAdmin, upload.single('photo'), (req, res) => 
   res.redirect('/admin/players');
 });
 
+router.post('/players/:id/delete', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) {
+    res.status(404).send('Not found');
+    return;
+  }
+  db.prepare('DELETE FROM group_players WHERE player_id = ?').run(id);
+  db.prepare('DELETE FROM players WHERE id = ?').run(id);
+  res.redirect('/admin/players');
+});
+
 function syncPlayerGroups(playerId: number, groupIds: string | string[] | undefined): void {
   db.prepare('DELETE FROM group_players WHERE player_id = ?').run(playerId);
   const ids = Array.isArray(groupIds) ? groupIds : groupIds ? [groupIds] : [];
@@ -777,6 +842,28 @@ router.post('/vizitka/arena/:id', requireAdmin, uploadVizitkaImage.single('image
   res.redirect('/admin/vizitka');
 });
 
+router.post('/vizitka/coach', requireAdmin, uploadVizitkaCoachPhoto.single('photo'), (req, res) => {
+  const name = cleanText(req.body.name);
+  if (!name) {
+    res.status(400).send('Укажите имя тренера');
+    return;
+  }
+  const role = cleanText(req.body.role);
+  const bio = cleanText(req.body.bio);
+  const photo = req.file ? `/uploads/vizitka/coaches/${req.file.filename}` : '';
+  const maxSort = queryRow<{ value: number }>(
+    db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS value FROM vizitka_coaches').get()
+  );
+  db.prepare('INSERT INTO vizitka_coaches (photo, role, name, bio, sort_order) VALUES (?, ?, ?, ?, ?)').run(
+    photo,
+    role,
+    name,
+    bio,
+    (maxSort?.value ?? 0) + 1
+  );
+  res.redirect('/admin/vizitka');
+});
+
 router.post('/vizitka/coach/:id', requireAdmin, uploadVizitkaCoachPhoto.single('photo'), (req, res) => {
   const existing = db.prepare('SELECT photo FROM vizitka_coaches WHERE id = ?').get(req.params.id) as
     | { photo: string }
@@ -799,6 +886,11 @@ router.post('/vizitka/coach/:id', requireAdmin, uploadVizitkaCoachPhoto.single('
     photo,
     req.params.id
   );
+  res.redirect('/admin/vizitka');
+});
+
+router.post('/vizitka/coach/:id/delete', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM vizitka_coaches WHERE id = ?').run(req.params.id);
   res.redirect('/admin/vizitka');
 });
 

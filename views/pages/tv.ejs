@@ -11,8 +11,13 @@
 <body>
   <%- include('../partials/masthead') %>
   <main>
-    <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
-    <div class="container section tv-page" style="padding-top:0;">
+    <div class="container section tv-page">
+      <div class="section__header">
+        <h1 class="section__title">
+          <a href="https://www.youtube.com/@fortunatvbelarus8681" target="_blank" rel="noopener">FORTUNA TV</a>
+        </h1>
+        <a class="btn btn--outline" href="https://www.youtube.com/@fortunatvbelarus8681" target="_blank" rel="noopener">YouTube</a>
+      </div>
       <% if (videos.length === 0) { %>
         <p>Видео пока не добавлены.</p>
       <% } else { %>

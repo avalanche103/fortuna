@@ -91,6 +91,67 @@
     setStatus('YouTube-видео вставлено');
   }
 
+  function toReelEmbed(url) {
+    try {
+      const parsed = new URL(url.trim());
+      const host = parsed.hostname.replace(/^www\./, '');
+      const path = parsed.pathname.replace(/\/+$/, '');
+
+      if (host.includes('instagram.com')) {
+        const match = path.match(/^\/(reel|reels|p)\/([A-Za-z0-9_-]+)/);
+        if (!match) return null;
+        const kind = match[1] === 'p' ? 'p' : 'reel';
+        return {
+          src: 'https://www.instagram.com/' + kind + '/' + match[2] + '/embed',
+          title: 'Instagram Reels',
+        };
+      }
+
+      if (host.includes('youtube.com') || host.includes('youtu.be')) {
+        const embedUrl = toYouTubeEmbed(url);
+        if (!embedUrl) return null;
+        return { src: embedUrl, title: 'YouTube Shorts' };
+      }
+
+      if (host.includes('facebook.com') || host.includes('fb.watch')) {
+        const reelId = path.match(/\/reel[s]?\/(\d+)/);
+        const permalink = reelId
+          ? 'https://www.facebook.com/reel/' + reelId[1]
+          : parsed.href;
+        return {
+          src:
+            'https://www.facebook.com/plugins/video.php?href=' +
+            encodeURIComponent(permalink) +
+            '&show_text=false',
+          title: 'Facebook Reels',
+        };
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function insertReel() {
+    const raw = window.prompt('Вставьте ссылку на Reels (Instagram, YouTube Shorts или Facebook)');
+    if (!raw) return;
+    const embed = toReelEmbed(raw);
+    if (!embed) {
+      setStatus('Не удалось распознать ссылку Reels', true);
+      return;
+    }
+    insertAtCursor(
+      bodyField,
+      '<p class="news-embed news-embed--reel"><iframe src="' +
+        embed.src +
+        '" title="' +
+        embed.title +
+        '" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></p>'
+    );
+    setStatus('Reels вставлен');
+  }
+
   function appendPreview(url) {
     if (!previews) return;
     const item = document.createElement('div');
@@ -192,6 +253,114 @@
     }
   });
 
+  const coverPaste = document.getElementById('cover-paste');
+  const coverCatcher = document.getElementById('cover-catcher');
+  const coverInput = document.getElementById('cover-image-input');
+  const coverEmpty = document.getElementById('cover-empty');
+  const coverFilled = document.getElementById('cover-filled');
+  const coverPreview = document.getElementById('cover-preview');
+  const coverStatus = document.getElementById('cover-status');
+  const coverRemove = document.getElementById('cover-remove');
+
+  function setCoverStatus(text, isError) {
+    if (!coverStatus) return;
+    coverStatus.hidden = !text;
+    coverStatus.textContent = text || '';
+    coverStatus.classList.toggle('is-error', Boolean(isError));
+  }
+
+  function showCover(url) {
+    if (coverInput) coverInput.value = url || '';
+    if (coverPreview) coverPreview.src = url || '';
+    if (coverEmpty) coverEmpty.hidden = Boolean(url);
+    if (coverFilled) coverFilled.hidden = !url;
+    if (coverRemove) coverRemove.hidden = !url;
+  }
+
+  function namedImageFile(file) {
+    if (file.name && /\.[a-z0-9]+$/i.test(file.name)) return file;
+    const extByType = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+    };
+    const ext = extByType[file.type] || '.png';
+    return new File([file], 'cover' + ext, { type: file.type || 'image/png' });
+  }
+
+  function filesFromClipboard(event) {
+    const files = [];
+    const data = event.clipboardData;
+    if (!data) return files;
+    if (data.files && data.files.length) {
+      for (const file of data.files) {
+        if (/^image\//i.test(file.type)) files.push(file);
+      }
+    }
+    if (!files.length && data.items) {
+      for (const item of data.items) {
+        if (item.kind === 'file' && /^image\//i.test(item.type)) {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+    }
+    return files;
+  }
+
+  async function uploadCover(file) {
+    setCoverStatus('Загрузка…');
+    const formData = new FormData();
+    formData.append('image', namedImageFile(file));
+    try {
+      const response = await fetch('/admin/news/upload-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Ошибка загрузки');
+      }
+      showCover(data.url);
+      setCoverStatus('Заглавная картинка вставлена');
+      if (coverCatcher) coverCatcher.value = '';
+    } catch (err) {
+      setCoverStatus(err instanceof Error ? err.message : 'Ошибка загрузки', true);
+    }
+  }
+
+  function onCoverPaste(event) {
+    const files = filesFromClipboard(event);
+    if (!files.length) {
+      setCoverStatus('В буфере нет картинки', true);
+      return;
+    }
+    event.preventDefault();
+    uploadCover(files[0]);
+  }
+
+  coverPaste?.addEventListener('click', (event) => {
+    if (event.target === coverRemove) return;
+    coverCatcher?.focus();
+  });
+
+  coverCatcher?.addEventListener('paste', onCoverPaste);
+  coverPaste?.addEventListener('paste', onCoverPaste);
+  coverPaste?.addEventListener('dragover', (event) => event.preventDefault());
+  coverPaste?.addEventListener('drop', (event) => event.preventDefault());
+  coverCatcher?.addEventListener('drop', (event) => event.preventDefault());
+
+  coverRemove?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    showCover('');
+    setCoverStatus('Заглавная картинка убрана');
+    coverCatcher?.focus();
+  });
+
   toolbar?.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
@@ -237,6 +406,9 @@
       }
       case 'youtube':
         insertYoutube();
+        break;
+      case 'reel':
+        insertReel();
         break;
       default:
         break;

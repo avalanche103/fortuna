@@ -49,7 +49,7 @@ echo
 echo "Waiting for external IP..."
 IP="$(gcloud compute instances describe "$VM_NAME" --zone="$ZONE" --project="$PROJECT_ID" --format='get(networkInterfaces[0].accessConfigs[0].natIP)')"
 echo "Site:  http://$IP/"
-echo "Admin: http://$IP/admin  (admin / admin)"
+echo "Admin: http://$IP/admin  (fortuna — set password with db:set-admin)"
 echo
 echo "SSH:   gcloud compute ssh $VM_NAME --zone=$ZONE --project=$PROJECT_ID"
 echo "Logs:  gcloud compute ssh $VM_NAME --zone=$ZONE --command='cd /opt/fortuna && sudo docker compose logs -f --tail=100'"

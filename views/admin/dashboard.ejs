@@ -13,6 +13,31 @@
     <%- include('sidebar') %>
     <div class="admin-main">
       <h1><%= title %></h1>
+      <section class="ga-widget">
+        <div class="ga-widget__head">
+          <div>
+            <h2 class="ga-widget__title">Google Analytics</h2>
+            <p class="ga-widget__subtitle">Посещения за сегодня</p>
+          </div>
+          <a href="/admin/analytics" class="btn btn--outline">Открыть аналитику</a>
+        </div>
+        <% if (!analytics.configured) { %>
+          <p class="ga-widget__empty">Подключите доступ к GA4 в разделе «Аналитика», чтобы видеть посещения.</p>
+        <% } else if (analytics.error) { %>
+          <p class="ga-widget__empty"><%= analytics.error %></p>
+        <% } else { %>
+          <div class="ga-widget__stats">
+            <div>
+              <div class="ga-widget__value"><%= formatGaNumber(analytics.sessions) %></div>
+              <div class="ga-widget__label">Посещений сегодня</div>
+            </div>
+            <div>
+              <div class="ga-widget__value"><%= formatGaNumber(analytics.newUsers) %></div>
+              <div class="ga-widget__label">Новых сегодня</div>
+            </div>
+          </div>
+        <% } %>
+      </section>
       <div class="admin-stats">
         <div class="stat-card"><div class="stat-card__value"><%= stats.news %></div><div class="stat-card__label">Новостей</div></div>
         <div class="stat-card"><div class="stat-card__value"><%= stats.players %></div><div class="stat-card__label">Игроков</div></div>

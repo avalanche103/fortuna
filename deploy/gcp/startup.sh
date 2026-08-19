@@ -60,4 +60,4 @@ docker compose build --pull
 docker compose up -d --remove-orphans
 
 echo "Fortuna is up. DATA_DIR=${DATA_DIR}"
-echo "Admin: http://$(curl -s ifconfig.me || echo SERVER_IP)/admin  (admin / admin — change password)"
+echo "Admin: http://$(curl -s ifconfig.me || echo SERVER_IP)/admin  (fortuna — set password with db:set-admin)"

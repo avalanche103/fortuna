@@ -61,3 +61,4 @@
 <% if (typeof jsonLd !== 'undefined' && jsonLd) { %>
 <script type="application/ld+json"><%- typeof jsonLd === 'string' ? jsonLd : JSON.stringify(jsonLd) %></script>
 <% } %>
+<%- include('google-analytics') %>

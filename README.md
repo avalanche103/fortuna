@@ -13,7 +13,7 @@ npm run dev
 ```
 
 Сайт: http://localhost:3000  
-Админка: http://localhost:3000/admin (логин `admin` / `admin`)
+Админка: http://localhost:3000/admin (логин `fortuna`; пароль — файл `.admin-pass` и `npm run db:set-admin`)
 
 ## Деплой на GCP (рекомендуется, минимум бюджета)
 
@@ -27,6 +27,16 @@ gcloud config set project YOUR_PROJECT_ID
 bash deploy/gcp/create-vm.sh
 ```
 
+## Деплой на обычный хостинг (FTP + Node.js)
+
+Старый PHP-сайт сохраняем zip-архивом, новую версию поднимаем как Node.js 22 + SQLite-файл.
+
+Пошагово: [`deploy/shared-hosting.md`](deploy/shared-hosting.md)
+
+```powershell
+.\deploy\pack-for-hosting.ps1
+```
+
 ## Деплой на Render
 
 Проект заточен под долгоживущий Node-сервис (не Vercel serverless).
@@ -35,7 +45,7 @@ bash deploy/gcp/create-vm.sh
    (или **Web Service** вручную с настройками из [`render.yaml`](render.yaml)).
 2. Build: `npm install` · Start: `npm start` (`tsx src/index.ts`, без обязательной сборки `dist/`) · Node **22+**.
 3. Переменные: `NODE_ENV=production`, `SESSION_SECRET`, `NODE_VERSION=22.14.0`.
-4. После первого деплоя откройте `/admin` (`admin` / `admin`) и смените пароль.
+4. После первого деплоя откройте `/admin` и войдите логином `fortuna` (пароль задайте через `.admin-pass` и `npm run db:set-admin`).
 
 Если сервис создавали вручную, в Settings поставьте:
 - **Build Command:** `npm install`

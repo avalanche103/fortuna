@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('sidebar') %>
+    <div class="admin-main">
+      <div class="admin-header">
+        <div>
+          <h1><%= title %></h1>
+          <p class="admin-subtitle">Данные из Google Analytics 4 · <%= measurementId %></p>
+        </div>
+      </div>
+
+      <% if (saved) { %><div class="alert alert--success">Подключение сохранено.</div><% } %>
+      <% if (connectError) { %><div class="alert alert--error"><%= connectError %></div><% } %>
+      <% if (report.error) { %><div class="alert alert--error"><%= report.error %></div><% } %>
+
+      <details class="form-card ga-connect" <%= configured ? '' : 'open' %>>
+        <summary>Подключение Google Analytics</summary>
+        <p class="form-hint">Счётчик на сайте уже стоит (<%= measurementId %>).</p>
+        <p class="form-hint">Google блокирует стандартное приложение gcloud для Analytics. Добавьте сервисный аккаунт как <strong>Просматривающий</strong> в GA4:</p>
+        <p class="form-hint"><code><%= credentialsEmail || '' %></code></p>
+        <p class="form-hint">Путь: <a href="https://analytics.google.com/analytics/web/#/admin" target="_blank" rel="noopener">analytics.google.com</a> → Администратор → Управление доступом к ресурсу → Добавить пользователя.</p>
+        <form method="post" action="/admin/analytics/connect">
+          <div class="form-group">
+            <label>ID ресурса GA4</label>
+            <input type="text" name="property_id" value="<%= propertyId %>" placeholder="Например, 123456789">
+            <p class="form-hint">Admin → Сведения о ресурсе → Идентификатор ресурса. Можно оставить пустым, если доступ только к одному ресурсу.</p>
+          </div>
+          <button type="submit" class="btn btn--primary">Сохранить ID ресурса</button>
+        </form>
+      </details>
+
+      <nav class="ga-periods" aria-label="Период">
+        <a href="/admin/analytics?period=today" class="<%= period === 'today' ? 'active' : '' %>">Сегодня</a>
+        <a href="/admin/analytics?period=7d" class="<%= period === '7d' ? 'active' : '' %>">7 дней</a>
+        <a href="/admin/analytics?period=30d" class="<%= period === '30d' ? 'active' : '' %>">30 дней</a>
+      </nav>
+
+      <% if (!configured) { %>
+        <p class="ga-widget__empty">После подключения здесь появятся посещения, источники, страницы и устройства.</p>
+      <% } else { %>
+        <div class="admin-stats ga-stats">
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaNumber(report.sessions) %></div>
+            <div class="stat-card__label">Посещения</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaNumber(report.newUsers) %></div>
+            <div class="stat-card__label">Новые посетители</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaNumber(report.users) %></div>
+            <div class="stat-card__label">Пользователи</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaNumber(report.pageViews) %></div>
+            <div class="stat-card__label">Просмотры страниц</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaPercent(report.engagementRate) %></div>
+            <div class="stat-card__label">Вовлечённость</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaDuration(report.avgSessionSeconds) %></div>
+            <div class="stat-card__label">Средняя сессия</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= formatGaPercent(report.bounceRate) %></div>
+            <div class="stat-card__label">Отказы</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__value"><%= report.realtimeUsers == null ? '—' : formatGaNumber(report.realtimeUsers) %></div>
+            <div class="stat-card__label">Сейчас на сайте</div>
+          </div>
+        </div>
+
+        <% if (report.daily.length) { %>
+          <% const maxSessions = Math.max.apply(null, report.daily.map(function(d) { return d.sessions; }).concat([1])); %>
+          <section class="ga-panel">
+            <h2>Посещения по дням</h2>
+            <div class="ga-chart" style="--cols:<%= report.daily.length %>">
+              <% report.daily.forEach(function(day) { %>
+                <div class="ga-chart__col" title="<%= day.label %>: <%= formatGaNumber(day.sessions) %> посещений, <%= formatGaNumber(day.newUsers) %> новых">
+                  <span class="ga-chart__bar" style="height:<%= Math.max(6, Math.round(day.sessions / maxSessions * 100)) %>%"></span>
+                  <span class="ga-chart__label"><%= day.label %></span>
+                </div>
+              <% }); %>
+            </div>
+          </section>
+        <% } %>
+
+        <%
+          const deviceLabel = function(name) {
+            if (name === 'desktop') return 'Компьютер';
+            if (name === 'mobile') return 'Телефон';
+            if (name === 'tablet') return 'Планшет';
+            return name;
+          };
+          const sourceLabel = function(name) {
+            if (name === '(direct)') return 'Прямой заход';
+            return name;
+          };
+        %>
+
+        <div class="ga-grid">
+          <section class="ga-panel">
+            <h2>Популярные страницы</h2>
+            <% if (!report.pages.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
+              <table class="admin-table">
+                <thead><tr><th>Страница</th><th>Просмотры</th></tr></thead>
+                <tbody>
+                  <% report.pages.forEach(function(item) { %>
+                    <tr>
+                      <td><code><%= item.name %></code></td>
+                      <td><%= formatGaNumber(item.value) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            <% } %>
+          </section>
+
+          <section class="ga-panel">
+            <h2>Источники</h2>
+            <% if (!report.sources.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
+              <table class="admin-table">
+                <thead><tr><th>Источник</th><th>Посещения</th></tr></thead>
+                <tbody>
+                  <% report.sources.forEach(function(item) { %>
+                    <tr>
+                      <td><%= sourceLabel(item.name) %></td>
+                      <td><%= formatGaNumber(item.value) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            <% } %>
+          </section>
+
+          <section class="ga-panel">
+            <h2>Устройства</h2>
+            <% if (!report.devices.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
+              <table class="admin-table">
+                <thead><tr><th>Устройство</th><th>Посещения</th></tr></thead>
+                <tbody>
+                  <% report.devices.forEach(function(item) { %>
+                    <tr>
+                      <td><%= deviceLabel(item.name) %></td>
+                      <td><%= formatGaNumber(item.value) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            <% } %>
+          </section>
+
+          <section class="ga-panel">
+            <h2>Страны</h2>
+            <% if (!report.countries.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
+              <table class="admin-table">
+                <thead><tr><th>Страна</th><th>Посещения</th></tr></thead>
+                <tbody>
+                  <% report.countries.forEach(function(item) { %>
+                    <tr>
+                      <td><%= item.name %></td>
+                      <td><%= formatGaNumber(item.value) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            <% } %>
+          </section>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

@@ -378,7 +378,7 @@ router.get('/player/:slug', (req: Request, res: Response) => {
 
 router.get('/tv', (_req: Request, res: Response) => {
   res.render('pages/tv', {
-    title: 'FC Fortuna TV',
+    title: 'FORTUNA TV',
     description: PAGE_DESCRIPTIONS.tv,
     ogUrl: '/tv',
     videos: getVideos(),

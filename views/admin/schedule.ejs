@@ -131,7 +131,7 @@
                                 <% if (slot) { %>style="--slot-color:<%= color %>;--slot-text:<%= textColor(color) %>"<% } %>>
                           <span class="schedule-slot-card__time"><%= timeLabel || (slot ? 'Настроено' : '+ Добавить') %></span>
                           <span class="schedule-slot-card__location"><%= locationLabel %></span>
-                          <small class="schedule-slot-card__note"><%= [slot && slot.note, isDouble && slot && slot.note_2].filter(Boolean).join(' / ') %></small>
+                          <span class="schedule-slot-card__note"><%= [slot && slot.note, isDouble && slot && slot.note_2].filter(Boolean).join(' / ') %></span>
                         </button>
                       </td>
                     <% }); %>
