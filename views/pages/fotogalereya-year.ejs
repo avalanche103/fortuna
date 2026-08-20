@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | fcfortuna.by</title>
   <%- include('../partials/social-meta') %>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <%- include('../partials/fonts') %>
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
   <%- include('../partials/masthead') %>
-  <main>
+  <main id="main-content">
     <div class="page-header"><div class="container"><h1><%= title %></h1></div></div>
     <div class="container section" style="padding-top:0;">
       <div class="players-grid">

@@ -260,6 +260,7 @@
             method: 'POST',
             body: formData,
             credentials: 'same-origin',
+            headers: window.CSRF_TOKEN ? { 'X-CSRF-Token': window.CSRF_TOKEN } : {},
           });
           const raw = await response.text();
           let data = {};
@@ -423,6 +424,7 @@
         method: 'POST',
         body: formData,
         credentials: 'same-origin',
+        headers: window.CSRF_TOKEN ? { 'X-CSRF-Token': window.CSRF_TOKEN } : {},
       });
       const raw = await response.text();
       let data = {};

@@ -42,10 +42,51 @@ import {
   PAGE_DESCRIPTIONS,
   newsArticleJsonLd,
   sportsTeamJsonLd,
+  breadcrumbJsonLd,
   truncateMeta,
 } from '../utils/seo';
+import { INDEXNOW_KEY } from '../config/env';
+import { getOrCreateThumbnail, THUMB_WIDTH } from '../utils/thumbnails';
+import fs from 'fs';
 
 const router = Router();
+
+router.get('/healthz', (_req: Request, res: Response) => {
+  res.type('text/plain').send('ok');
+});
+
+router.get(`/${INDEXNOW_KEY}.txt`, (_req: Request, res: Response) => {
+  res.type('text/plain').send(INDEXNOW_KEY);
+});
+
+router.get('/.well-known/security.txt', (_req: Request, res: Response) => {
+  res.type('text/plain').send(
+    [
+      'Contact: mailto:fcfortuna@mail.ru',
+      'Preferred-Languages: ru, en',
+      `Canonical: ${res.locals.siteUrl}/.well-known/security.txt`,
+      '',
+    ].join('\n')
+  );
+});
+
+router.get('/img/thumb', async (req: Request, res: Response) => {
+  const src = String(req.query.src || '');
+  const widthRaw = parseInt(String(req.query.w || THUMB_WIDTH), 10);
+  const width = Number.isFinite(widthRaw) ? Math.min(1200, Math.max(80, widthRaw)) : THUMB_WIDTH;
+  const thumb = await getOrCreateThumbnail(src, width);
+  if (!thumb) {
+    if (src.startsWith('/uploads/')) {
+      res.redirect(src);
+      return;
+    }
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  res.type('image/jpeg');
+  fs.createReadStream(thumb).pipe(res);
+});
 
 router.get('/robots.txt', (_req: Request, res: Response) => {
   const base = res.locals.siteUrl as string;
@@ -58,6 +99,7 @@ router.get('/robots.txt', (_req: Request, res: Response) => {
       'Disallow: /api/',
       '',
       `Sitemap: ${base}/sitemap.xml`,
+      `Host: ${base.replace(/^https?:\/\//, '')}`,
       '',
     ].join('\n')
   );
@@ -79,7 +121,7 @@ router.get('/', (_req: Request, res: Response) => {
     description: PAGE_DESCRIPTIONS.home,
     ogUrl: '/',
     ogImage: '/images/og-share.jpg',
-    jsonLd: sportsTeamJsonLd(siteUrl),
+    jsonLd: [sportsTeamJsonLd(siteUrl)],
     recruitmentNews,
     news: getLatestNewsExcludingCategory(8, 'nabor'),
     todayDate: formatDateRu(new Date().toISOString()),
@@ -119,9 +161,8 @@ router.get('/blog', (req: Request, res: Response) => {
 
   const params = new URLSearchParams();
   if (year) params.set('year', String(year));
-  if (page > 1) params.set('page', String(page));
-  const query = params.toString();
-  const ogUrl = query ? `/blog?${query}` : '/blog';
+  const canonicalQuery = params.toString();
+  const ogUrl = canonicalQuery ? `/blog?${canonicalQuery}` : '/blog';
 
   const olderPage = year ? page - 1 : page + 1;
   const newerPage = year ? page + 1 : page - 1;
@@ -142,6 +183,7 @@ router.get('/blog', (req: Request, res: Response) => {
       ? truncateMeta(`Новости ФК «Фортуна» Минск за ${year} год.`)
       : PAGE_DESCRIPTIONS.blog,
     ogUrl,
+    robots: page > 1 ? 'noindex, follow' : 'index, follow',
     prevUrl: canGoNewer ? blogHref(newerPage, year) : null,
     nextUrl: canGoOlder ? blogHref(olderPage, year) : null,
     news: items,
@@ -169,14 +211,22 @@ function renderNewsDetail(_req: Request, res: Response, article: NonNullable<Ret
     ogImage: coverImage || '/images/og-share.jpg',
     ogType: 'article',
     articlePublishedAt: article.published_at,
-    jsonLd: newsArticleJsonLd({
-      siteUrl,
-      title: article.title,
-      description: excerpt || article.title,
-      url: ogUrl,
-      image: coverImage,
-      publishedAt: article.published_at,
-    }),
+    jsonLd: [
+      newsArticleJsonLd({
+        siteUrl,
+        title: article.title,
+        description: excerpt || article.title,
+        url: ogUrl,
+        image: coverImage,
+        publishedAt: article.published_at,
+        modifiedAt: article.updated_at,
+      }),
+      breadcrumbJsonLd(siteUrl, [
+        { name: 'Главная', path: '/' },
+        { name: 'Новости', path: '/blog' },
+        { name: article.title, path: ogUrl },
+      ]),
+    ],
     article,
     coverImage,
     bodyHtml: getNewsArticleBody(article),
@@ -251,6 +301,11 @@ router.get('/gruppy/:slug', (req: Request, res: Response) => {
     ),
     ogUrl: `/gruppy/${group.slug}`,
     ogImage: group.photo || '/images/og-share.jpg',
+    jsonLd: breadcrumbJsonLd(res.locals.siteUrl as string, [
+      { name: 'Главная', path: '/' },
+      { name: 'Группы', path: '/gruppy' },
+      { name: group.name, path: `/gruppy/${group.slug}` },
+    ]),
     group,
     players: getGruppyGroupPlayers(group),
   });
@@ -445,6 +500,12 @@ router.get('/foto/:year/:slug', (req: Request, res: Response) => {
     description: truncateMeta(`${album.title} — фотогалерея ФК «Фортуна» Минск.`),
     ogUrl: `/foto/${year}/${album.slug}`,
     ogImage: album.cover_image || '/images/og-share.jpg',
+    jsonLd: breadcrumbJsonLd(res.locals.siteUrl as string, [
+      { name: 'Главная', path: '/' },
+      { name: 'Фото', path: '/foto' },
+      { name: String(year), path: `/foto/${year}` },
+      { name: album.title, path: `/foto/${year}/${album.slug}` },
+    ]),
     year,
     album,
     photos: getArchivePhotos(album.id),

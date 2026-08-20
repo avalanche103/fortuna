@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | fcfortuna.by</title>
   <%- include('../partials/social-meta') %>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <%- include('../partials/fonts') %>
   <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
   <%- include('../partials/masthead') %>
-  <main>
+  <main id="main-content">
     <div class="page-header"><div class="container"><h1><%= album.title %></h1></div></div>
     <div class="container section" style="padding-top:0;">
       <% if (!photos.length) { %>
@@ -19,7 +19,7 @@
         <div class="photo-grid" id="photo-grid">
           <% photos.forEach(function(photo) { %>
             <a href="<%= photo.filename %>" class="photo-grid__item" data-photo-id="<%= photo.id %>">
-              <img src="<%= photo.filename %>" alt="<%= photo.caption || album.title %>" loading="lazy">
+              <img src="<%= typeof thumb === 'function' ? thumb(photo.filename) : photo.filename %>" alt="<%= photo.caption || album.title %>" loading="lazy" width="480" height="320">
             </a>
           <% }); %>
         </div>

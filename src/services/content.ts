@@ -2,6 +2,7 @@ import db from '../db';
 import { CHUDO_MASTER_SLUG } from '../constants';
 import { queryRow, queryRows } from '../db/helpers';
 import { buildNewsExcerpt, getNewsCoverImage as extractNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
+import { sanitizeNewsHtml } from '../utils/html';
 import { youtubeEmbedUrl, youtubeThumb } from '../utils/youtube';
 import type {
   ArchiveItem,
@@ -19,11 +20,32 @@ import type {
   VizitkaCoach,
 } from '../types';
 
-export function getSettings(): SiteSettings {
+let navCache: { at: number; settings: SiteSettings; groups: Group[] } | null = null;
+const NAV_CACHE_MS = 30_000;
+
+export function invalidateContentCache(): void {
+  navCache = null;
+}
+
+function loadSettings(): SiteSettings {
   const settingsRows = queryRows<{ key: string; value: string }>(
     db.prepare('SELECT key, value FROM site_settings').all()
   );
   return Object.fromEntries(settingsRows.map((r) => [r.key, r.value]));
+}
+
+function getNavCache(): { settings: SiteSettings; groups: Group[] } {
+  if (navCache && Date.now() - navCache.at < NAV_CACHE_MS) return navCache;
+  navCache = {
+    at: Date.now(),
+    settings: loadSettings(),
+    groups: queryRows<Group>(db.prepare('SELECT * FROM groups ORDER BY sort_order').all()),
+  };
+  return navCache;
+}
+
+export function getSettings(): SiteSettings {
+  return getNavCache().settings;
 }
 
 export function getSetting(key: string, fallback = ''): string {
@@ -207,7 +229,7 @@ export function getPlayerBySlug(slug: string): Player | undefined {
 }
 
 export function getGroups(): Group[] {
-  return queryRows<Group>(db.prepare('SELECT * FROM groups ORDER BY sort_order').all());
+  return getNavCache().groups;
 }
 
 /** Основные группы (для привязки игроков в админке) */
@@ -256,8 +278,25 @@ export function getGruppyGroupPlayers(group: Group): Player[] {
 export function getGruppyPlayersByGroup(): Map<number, Player[]> {
   const groups = getGruppyGroups();
   const map = new Map<number, Player[]>();
-  for (const g of groups) {
-    map.set(g.id, getGruppyGroupPlayers(g));
+  for (const group of groups) map.set(group.id, []);
+
+  const chudo = groups.find((group) => group.slug === CHUDO_MASTER_SLUG);
+  if (chudo) map.set(chudo.id, getChudoMasterPlayers());
+
+  const rows = queryRows<Player & { group_id: number }>(
+    db
+      .prepare(
+        `SELECT p.*, gp.group_id, gp.number
+         FROM players p
+         JOIN group_players gp ON gp.player_id = p.id
+         WHERE p.is_graduate = 0
+         ORDER BY ${playerGroupOrderSql('p')}`
+      )
+      .all()
+  );
+  for (const row of rows) {
+    const list = map.get(row.group_id);
+    if (list) list.push(row);
   }
   return map;
 }
@@ -660,7 +699,7 @@ export function getNewsCoverImage(article: Pick<News, 'body'>): string | null {
 
 export function getNewsArticleBody(article: Pick<News, 'body'>): string {
   const cover = extractNewsCoverImage(article.body);
-  return stripNewsCoverFromBody(article.body, cover);
+  return sanitizeNewsHtml(stripNewsCoverFromBody(article.body, cover));
 }
 
 export function splitPlayerName(name: string): { surname: string; firstName: string } {

@@ -10,5 +10,7 @@ tmp-*.html
 .env
 .env.*
 data/ga-credentials.json
+data/thumbs/
+data/backups/
 fortuna-hosting-*.zip
 fortuna-hosting-*.tar

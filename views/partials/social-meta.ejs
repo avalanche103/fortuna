@@ -42,6 +42,8 @@
 <meta property="og:description" content="<%= esc(pageDescription) %>">
 <meta property="og:url" content="<%= esc(pageUrl) %>">
 <meta property="og:image" content="<%= esc(pageImage) %>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="ФК «Фортуна» Минск">
 <meta property="og:locale" content="ru_RU">
 <% if (pageOgType === 'article' && typeof articlePublishedAt !== 'undefined' && articlePublishedAt) { %>
@@ -59,6 +61,9 @@
 <link rel="next" href="<%= esc(/^https?:\/\//i.test(nextUrl) ? nextUrl : `${siteUrl}${nextUrl}`) %>">
 <% } %>
 <% if (typeof jsonLd !== 'undefined' && jsonLd) { %>
-<script type="application/ld+json"><%- typeof jsonLd === 'string' ? jsonLd : JSON.stringify(jsonLd) %></script>
+<% const jsonLdItems = Array.isArray(jsonLd) ? jsonLd : [jsonLd]; %>
+<% jsonLdItems.forEach(function(item) { %>
+<script type="application/ld+json"><%- typeof item === 'string' ? item : JSON.stringify(item) %></script>
+<% }); %>
 <% } %>
 <%- include('google-analytics') %>

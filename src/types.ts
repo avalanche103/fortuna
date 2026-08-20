@@ -8,6 +8,8 @@ export interface News {
   is_pinned: number;
   sort_order: number;
   published_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Group {

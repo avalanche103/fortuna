@@ -58,7 +58,8 @@ export async function fetchPage(url: string, delayMs = 300): Promise<string> {
 
 export function absUrl(url: string): string {
   if (!url) return '';
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http://')) return `https://${url.slice('http://'.length)}`;
+  if (url.startsWith('https://')) return url;
   if (url.startsWith('//')) return `https:${url}`;
   return `${BASE}${url.startsWith('/') ? '' : '/'}${url}`;
 }

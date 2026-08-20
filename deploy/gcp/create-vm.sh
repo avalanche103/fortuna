@@ -20,13 +20,20 @@ echo "Project: $PROJECT_ID  Zone: $ZONE  VM: $VM_NAME ($MACHINE_TYPE)"
 
 gcloud services enable compute.googleapis.com --project="$PROJECT_ID"
 
-# Allow HTTP (idempotent)
+# Allow HTTP/HTTPS (idempotent)
 gcloud compute firewall-rules describe allow-http-fortuna --project="$PROJECT_ID" >/dev/null 2>&1 \
   || gcloud compute firewall-rules create allow-http-fortuna \
        --project="$PROJECT_ID" \
        --allow=tcp:80 \
        --target-tags=http-server \
        --description="FC Fortuna HTTP"
+
+gcloud compute firewall-rules describe allow-https-fortuna --project="$PROJECT_ID" >/dev/null 2>&1 \
+  || gcloud compute firewall-rules create allow-https-fortuna \
+       --project="$PROJECT_ID" \
+       --allow=tcp:443 \
+       --target-tags=https-server \
+       --description="FC Fortuna HTTPS"
 
 STARTUP_SCRIPT="$(cd "$(dirname "$0")" && pwd)/startup.sh"
 
@@ -40,7 +47,7 @@ gcloud compute instances describe "$VM_NAME" --zone="$ZONE" --project="$PROJECT_
        --image-project=debian-cloud \
        --boot-disk-size="${DISK_SIZE_GB}GB" \
        --boot-disk-type=pd-standard \
-       --tags=http-server \
+       --tags=http-server,https-server \
        --metadata "REPO_URL=${REPO_URL}" \
        --metadata "BRANCH=${BRANCH}" \
        --metadata-from-file=startup-script="$STARTUP_SCRIPT"

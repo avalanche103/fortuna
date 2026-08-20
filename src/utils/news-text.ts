@@ -1,4 +1,5 @@
 import { htmlToPlain } from '../db/importer/utils';
+import { upgradeInsecureUrls } from './html';
 
 const JUNK_RE = /resizeWidthMgGallery|function\s*\(|^\s*</i;
 
@@ -48,7 +49,7 @@ export function getNewsCoverImage(body: string | null | undefined): string | nul
   const match = body.match(/<img[^>]+src=["']([^"']+)["']/i);
   const src = match?.[1]?.trim();
   if (!src || /kk\.png|ball\.gif|no-img|logo/i.test(src)) return null;
-  return src;
+  return upgradeInsecureUrls(src);
 }
 
 /** Убирает первое (обложное) фото из тела, если оно уже показывается отдельно. */
@@ -75,10 +76,14 @@ function escapeHtmlAttr(value: string): string {
 }
 
 /** Ставит заглавную картинку первым изображением в теле новости. */
-export function applyNewsCover(body: string | null | undefined, coverSrc: string | null | undefined): string {
+export function applyNewsCover(
+  body: string | null | undefined,
+  coverSrc: string | null | undefined,
+  alt = ''
+): string {
   const currentCover = getNewsCoverImage(body);
   const nextBody = stripNewsCoverFromBody(body, currentCover);
   const cover = (coverSrc || '').trim();
   if (!cover) return nextBody;
-  return `<p><img src="${escapeHtmlAttr(cover)}" alt=""></p>\n${nextBody}`.trim();
+  return `<p><img src="${escapeHtmlAttr(cover)}" alt="${escapeHtmlAttr(alt)}"></p>\n${nextBody}`.trim();
 }

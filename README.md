@@ -15,6 +15,8 @@ npm run dev
 Сайт: http://localhost:3000  
 Админка: http://localhost:3000/admin (логин `fortuna`; пароль — файл `.admin-pass` и `npm run db:set-admin`)
 
+Прод: задайте `SESSION_SECRET` (длинная случайная строка) и `SITE_URL=https://fcfortuna.by`. Проверка живости: `/healthz`. Бэкап базы: `npm run db:backup`.
+
 ## Деплой на GCP (рекомендуется, минимум бюджета)
 
 Compute Engine **e2-micro** + Docker + SQLite на постоянном диске. Данные сохраняются.
@@ -44,7 +46,7 @@ bash deploy/gcp/create-vm.sh
 1. В [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** и укажите этот репозиторий  
    (или **Web Service** вручную с настройками из [`render.yaml`](render.yaml)).
 2. Build: `npm install` · Start: `npm start` (`tsx src/index.ts`, без обязательной сборки `dist/`) · Node **22+**.
-3. Переменные: `NODE_ENV=production`, `SESSION_SECRET`, `NODE_VERSION=22.14.0`.
+3. Переменные: `NODE_ENV=production`, `SESSION_SECRET`, `SITE_URL=https://YOUR_HOST`, `NODE_VERSION=22.14.0`.
 4. После первого деплоя откройте `/admin` и войдите логином `fortuna` (пароль задайте через `.admin-pass` и `npm run db:set-admin`).
 
 Если сервис создавали вручную, в Settings поставьте:

@@ -45,6 +45,10 @@ if [[ ! -f .env ]]; then
 SESSION_SECRET=${SECRET}
 DATA_DIR=/data
 NODE_ENV=production
+FORCE_HTTPS=0
+# After pointing the domain and Let's Encrypt / Caddy / Cloudflare:
+# SITE_URL=https://fcfortuna.by
+# FORCE_HTTPS=1
 EOF
 fi
 

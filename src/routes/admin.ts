@@ -31,6 +31,10 @@ import type { ScheduleSlotInput } from '../services/content';
 import { createDiplomaPdf } from '../services/diploma';
 import { resolveYoutubeTitle } from '../utils/youtube';
 import { applyNewsCover, getNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
+import { sanitizeNewsHtml } from '../utils/html';
+import { imageFileFilter } from '../utils/uploads';
+import { pingIndexNow } from '../utils/indexnow';
+import { loginRateLimit, clearLoginAttempts } from '../middleware/rate-limit';
 import {
   credentialsEmail,
   formatGaDuration,
@@ -56,7 +60,7 @@ const storage = multer.diskStorage({
     cb(null, unique + path.extname(file.originalname));
   },
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFileFilter });
 
 const groupUploadDir = path.join(uploadDir, 'groups');
 const groupStorage = multer.diskStorage({
@@ -69,7 +73,7 @@ const groupStorage = multer.diskStorage({
     cb(null, unique + path.extname(file.originalname));
   },
 });
-const uploadGroupPhoto = multer({ storage: groupStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const uploadGroupPhoto = multer({ storage: groupStorage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFileFilter });
 
 const vizitkaUploadDir = path.join(uploadDir, 'vizitka');
 const vizitkaCoachUploadDir = path.join(uploadDir, 'vizitka', 'coaches');
@@ -93,10 +97,11 @@ const vizitkaCoachStorage = multer.diskStorage({
     cb(null, unique + path.extname(file.originalname));
   },
 });
-const uploadVizitkaImage = multer({ storage: vizitkaStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const uploadVizitkaImage = multer({ storage: vizitkaStorage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFileFilter });
 const uploadVizitkaCoachPhoto = multer({
   storage: vizitkaCoachStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
 });
 
 const newsUploadDir = path.join(uploadDir, 'news');
@@ -113,12 +118,7 @@ const newsStorage = multer.diskStorage({
 const uploadNewsImage = multer({
   storage: newsStorage,
   limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const mime = String(file.mimetype || '').toLowerCase();
-    const name = String(file.originalname || '').toLowerCase();
-    if (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp)$/.test(name)) cb(null, true);
-    else cb(new Error('Только изображения (JPEG, PNG, GIF, WebP)'));
-  },
+  fileFilter: imageFileFilter,
 });
 
 const router = Router();
@@ -131,14 +131,22 @@ router.get('/login', (req: Request, res: Response) => {
   res.render('admin/login', { title: 'Вход', error: null });
 });
 
-router.post('/login', (req: Request, res: Response) => {
+router.post('/login', loginRateLimit, (req: Request, res: Response) => {
   const { username, password } = req.body;
   if (!verifyAdmin(username, password)) {
     res.render('admin/login', { title: 'Вход', error: 'Неверный логин или пароль' });
     return;
   }
-  req.session.adminId = getAdminId(username);
-  res.redirect('/admin');
+  const adminId = getAdminId(username);
+  req.session.regenerate((err) => {
+    if (err) {
+      res.status(500).render('pages/500', { title: 'Ошибка сервера', robots: 'noindex, follow' });
+      return;
+    }
+    req.session.adminId = adminId;
+    clearLoginAttempts(req);
+    res.redirect('/admin');
+  });
 });
 
 router.post('/logout', requireAdmin, (req: Request, res: Response) => {
@@ -334,21 +342,26 @@ router.post('/news', requireAdmin, (req, res) => {
     db.prepare('SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM news WHERE category != ?').get('nabor')
   );
   const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
-  const nextBody = applyNewsCover(body, cover_image);
+  const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
   db.prepare(
     `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(title, slug, newsCategory, excerpt || null, nextBody, is_pinned ? 1 : 0, sortOrder, published_at);
+  void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${newsCategory}/${slug}`);
   res.redirect('/admin/news');
 });
 
 router.post('/news/:id', requireAdmin, (req, res) => {
   const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
-  const nextBody = applyNewsCover(body, cover_image);
+  const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
+  const existing = queryRow<{ slug: string }>(db.prepare('SELECT slug FROM news WHERE id = ?').get(req.params.id));
   db.prepare(
     `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, published_at=?, updated_at=datetime('now')
      WHERE id=?`
   ).run(title, category || 'novosti', excerpt || null, nextBody, is_pinned ? 1 : 0, published_at, req.params.id);
+  if (existing?.slug) {
+    void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${category || 'novosti'}/${existing.slug}`);
+  }
   res.redirect('/admin/news');
 });
 

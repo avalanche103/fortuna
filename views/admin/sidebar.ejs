@@ -26,6 +26,7 @@
   <form action="/admin/logout" method="post" class="admin-sidebar__logout">
     <button type="submit" class="btn btn--outline admin-sidebar__logout-btn">Выйти</button>
   </form>
+  <%- include('csrf') %>
   <script>
   (function () {
     var layout = document.querySelector('.admin-layout');

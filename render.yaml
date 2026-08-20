@@ -6,7 +6,7 @@ services:
     region: frankfurt
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /
+    healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
         value: "22.14.0"
@@ -14,3 +14,5 @@ services:
         value: production
       - key: SESSION_SECRET
         generateValue: true
+      - key: SITE_URL
+        value: https://fcfortuna.by

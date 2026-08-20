@@ -1,0 +1,13 @@
+<script>
+  window.CSRF_TOKEN = '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>';
+  document.querySelectorAll('form').forEach(function (form) {
+    var method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
+    if (form.querySelector('input[name="_csrf"]')) return;
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = '_csrf';
+    input.value = window.CSRF_TOKEN || '';
+    form.appendChild(input);
+  });
+</script>

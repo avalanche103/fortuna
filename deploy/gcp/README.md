@@ -52,11 +52,17 @@ gcloud compute ssh fortuna --zone=us-central1-a --command='sudo mkdir -p /var/li
 - Регион Free Tier: **`us-central1` / `us-west1` / `us-east1`** (не Frankfurt).
 - Машина: **`e2-micro`**, диск **pd-standard** ~20 GB.
 - Внешний IP на Always Free — ephemeral; для стабильного IP нужен static (может тарифицироваться).
-- HTTPS: позже бесплатно через Cloudflare перед IP или Caddy/`certbot` на VM.
+- HTTPS: Cloudflare перед IP (Flexible или Full) либо Caddy/`certbot` на VM. Откройте порт **443**. После сертификата в `.env`:
+  `SITE_URL=https://fcfortuna.by` и `FORCE_HTTPS=1`, затем `docker compose up -d`.
+- Следите за сроком сертификата (панель / UptimeRobot SSL / `openssl s_client`). Истёкший LE даёт «подключение не является частным».
+- Проверка здоровья: `http://IP/healthz` должно отвечать `ok`.
+- Бэкап SQLite: `npm run db:backup` (файлы в `data/backups/`).
 
 ## Переменные (в `.env` на VM)
 
 | Ключ | Значение |
 |------|----------|
 | `SESSION_SECRET` | случайная строка (скрипт генерирует сам) |
+| `SITE_URL` | `https://fcfortuna.by` после привязки домена |
+| `FORCE_HTTPS` | `1` когда TLS работает |
 | `DATA_DIR` | `/data` внутри контейнера (= `/var/lib/fortuna` на хосте) |

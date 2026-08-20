@@ -5,6 +5,7 @@ import db from '../db';
 declare module 'express-session' {
   interface SessionData {
     adminId?: number;
+    csrfToken?: string;
   }
 }
 

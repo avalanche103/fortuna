@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,700&family=Oswald:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <%- include('../partials/fonts') %>
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body class="login-page">
@@ -13,6 +13,7 @@
     <h1>Вход в админку</h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
     <form method="post" action="/admin/login">
+      <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
       <div class="form-group">
         <label>Логин</label>
         <input type="text" name="username" required autofocus>
@@ -24,5 +25,6 @@
       <button type="submit" class="btn btn--primary" style="width:100%;">Войти</button>
     </form>
   </div>
+  <%- include('csrf') %>
 </body>
 </html>

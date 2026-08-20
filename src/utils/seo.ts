@@ -13,6 +13,12 @@ export const PAGE_DESCRIPTIONS = {
   foto: 'Фотогалерея футбольного клуба «Фортуна» Минск.',
 } as const;
 
+const SOCIAL_PROFILES = [
+  'https://www.instagram.com/fc_fortuna_minsk/',
+  'https://vk.com/fcfortuna_by',
+  'https://www.youtube.com/@fortunatvbelarus8681',
+];
+
 export function truncateMeta(text: string, maxLen = 160): string {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (clean.length <= maxLen) return clean;
@@ -20,21 +26,25 @@ export function truncateMeta(text: string, maxLen = 160): string {
 }
 
 export function absoluteUrl(siteUrl: string, pathOrUrl: string): string {
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl.replace(/^http:\/\//i, 'https://');
   const base = siteUrl.replace(/\/$/, '');
   return `${base}${pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`}`;
 }
 
 export function sportsTeamJsonLd(siteUrl: string) {
+  const url = siteUrl.replace(/\/$/, '');
   return {
     '@context': 'https://schema.org',
     '@type': 'SportsTeam',
     name: 'ФК «Фортуна» Минск',
     alternateName: 'FC Fortuna Minsk',
-    url: siteUrl.replace(/\/$/, ''),
+    url,
     logo: absoluteUrl(siteUrl, '/images/logo-1.png'),
     image: absoluteUrl(siteUrl, '/images/og-share.jpg'),
     sport: 'Soccer',
+    telephone: ['+375296611931', '+375293409823'],
+    email: 'fcfortuna@mail.ru',
+    sameAs: SOCIAL_PROFILES,
     address: {
       '@type': 'PostalAddress',
       addressLocality: 'Минск',
@@ -50,6 +60,7 @@ export function newsArticleJsonLd(opts: {
   url: string;
   image?: string | null;
   publishedAt: string;
+  modifiedAt?: string | null;
 }) {
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -58,6 +69,7 @@ export function newsArticleJsonLd(opts: {
     description: truncateMeta(opts.description, 200),
     mainEntityOfPage: absoluteUrl(opts.siteUrl, opts.url),
     datePublished: opts.publishedAt,
+    dateModified: opts.modifiedAt || opts.publishedAt,
     author: {
       '@type': 'Organization',
       name: 'ФК «Фортуна» Минск',
@@ -75,4 +87,17 @@ export function newsArticleJsonLd(opts: {
     data.image = [absoluteUrl(opts.siteUrl, opts.image)];
   }
   return data;
+}
+
+export function breadcrumbJsonLd(siteUrl: string, items: { name: string; path: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(siteUrl, item.path),
+    })),
+  };
 }

@@ -92,7 +92,13 @@ npm ci --omit=dev
 
 1. Запустите приложение в панели (Restart / Enable).
 2. Привяжите домен к Node-приложению, чтобы запросы не уходили в старый `index.php`.
-3. Включите HTTPS (Let's Encrypt в панели), если ещё нет.
+3. Включите HTTPS (Let's Encrypt в панели) на **оба** имени: `fcfortuna.by` и `www.fcfortuna.by`.
+4. В панели включите редирект HTTP → HTTPS, если он есть. Приложение тоже редиректит, если `SITE_URL` начинается с `https://`.
+5. Проверьте: `https://fcfortuna.by/healthz` → `ok`; `http://fcfortuna.by/` должен 301 на HTTPS.
+6. Поставьте внешний мониторинг (UptimeRobot) на HTTPS и срок SSL.
+7. Подключите сайт в [Яндекс.Вебмастере](https://webmaster.yandex.ru/) и [Google Search Console](https://search.google.com/search-console) на канонический HTTPS-хост. Sitemap: `https://fcfortuna.by/sitemap.xml`.
+8. Проверьте [Safe Browsing](https://transparencyreport.google.com/safe-browsing/search?url=fcfortuna.by).
+9. Бэкап базы: в SSH `npm run db:backup` (копии в `data/backups/`).
 
 phpMyAdmin **не открывать**: база уже лежит файлом `data/fortuna.db`. Если есть `fortuna.db-wal` / `fortuna.db-shm`, залейте их тоже (после `pack-for-hosting.ps1` WAL обычно уже слит в основной файл).
 
