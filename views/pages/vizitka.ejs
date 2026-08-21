@@ -18,17 +18,28 @@
 
       <% if (intro) { %>
         <article class="card vizitka-intro">
-          <h2 class="vizitka-intro__title">
-            <% const fortunaMark = '«ФОРТУНА»'; %>
-            <% const fortunaAt = intro.title.indexOf(fortunaMark); %>
-            <% if (fortunaAt > 0) { %>
-              <span class="vizitka-intro__title-line"><%= intro.title.slice(0, fortunaAt).trim() %></span>
-              <span class="vizitka-intro__title-line"><%= intro.title.slice(fortunaAt).trim() %></span>
-            <% } else { %>
-              <%= intro.title %>
-            <% } %>
-          </h2>
-          <div class="vizitka-intro__body"><%= intro.body %></div>
+          <div class="vizitka-intro__layout">
+            <div class="vizitka-intro__text">
+              <h2 class="vizitka-intro__title">
+                <% const fortunaMark = '«ФОРТУНА»'; %>
+                <% const fortunaAt = intro.title.indexOf(fortunaMark); %>
+                <% if (fortunaAt > 0) { %>
+                  <span class="vizitka-intro__title-line"><%= intro.title.slice(0, fortunaAt).trim() %></span>
+                  <span class="vizitka-intro__title-line"><%= intro.title.slice(fortunaAt).trim() %></span>
+                <% } else { %>
+                  <%= intro.title %>
+                <% } %>
+              </h2>
+              <div class="vizitka-intro__body"><%= intro.body %></div>
+            </div>
+            <img
+              class="vizitka-intro__logo"
+              src="/images/footer-trademark.png"
+              alt="Эмблема ФК «Фортуна»"
+              width="50"
+              height="67"
+            >
+          </div>
         </article>
       <% } %>
 
@@ -62,5 +73,21 @@
     </div>
   </main>
   <%- include('../partials/footer') %>
+  <script>
+    (function () {
+      var text = document.querySelector('.vizitka-intro__text');
+      var logo = document.querySelector('.vizitka-intro__logo');
+      if (!text || !logo) return;
+
+      function fitLogo() {
+        logo.style.height = text.offsetHeight + 'px';
+        logo.style.width = 'auto';
+      }
+
+      fitLogo();
+      logo.addEventListener('load', fitLogo);
+      window.addEventListener('resize', fitLogo);
+    })();
+  </script>
 </body>
 </html>

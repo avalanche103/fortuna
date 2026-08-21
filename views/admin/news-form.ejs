@@ -6,6 +6,7 @@
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
+  <%- include('../partials/admin-favicon') %>
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
@@ -24,7 +25,7 @@
         </div>
         <div class="form-group">
           <label>Краткое описание</label>
-          <textarea name="excerpt"><%= article ? (article.excerpt || '') : '' %></textarea>
+          <textarea name="excerpt" class="js-word-editor" data-mode="text"><%= article ? (article.excerpt || '') : '' %></textarea>
         </div>
         <div class="form-group">
           <label for="cover-catcher">Заглавная картинка</label>
@@ -59,20 +60,8 @@
         </div>
         <div class="form-group">
           <label>Текст</label>
-          <div class="news-editor-toolbar" id="news-editor-toolbar">
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="paragraph">Абзац</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="line-break">Перенос</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="h2">H2</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="h3">H3</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="link">Ссылка</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="youtube">YouTube</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="reel">Reels</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ul">Список UL</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="ol">Список OL</button>
-            <button type="button" class="btn btn--outline news-editor-toolbar__btn" data-action="quote">Цитата</button>
-          </div>
-          <textarea name="body" id="news-body" style="min-height:240px;" required><%= article ? bodyHtml : '' %></textarea>
-          <p class="form-hint">Можно вставить картинку из буфера (Ctrl+V) или перетащить файл в поле текста. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
+          <textarea name="body" id="news-body" class="js-word-editor" data-mode="html" data-tools="news" required><%= article ? bodyHtml : '' %></textarea>
+          <p class="form-hint">Можно вставить картинку из буфера (Ctrl+V) или перетащить файл в текст. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
           <p class="cover-paste__status" id="news-body-status" hidden></p>
         </div>
         <div class="form-group">
@@ -90,6 +79,7 @@
       </form>
     </div>
   </div>
+  <script src="/js/admin-word-editor.js"></script>
   <script src="/js/admin-news-images.js"></script>
 </body>
 </html>

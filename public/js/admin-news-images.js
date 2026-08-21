@@ -6,8 +6,11 @@
   const previews = document.getElementById('image-previews');
   const bodyField = document.getElementById('news-body');
   const bodyStatus = document.getElementById('news-body-status');
-  const toolbar = document.getElementById('news-editor-toolbar');
   if (!dropzone || !fileInput || !bodyField) return;
+
+  const wordEditor = window.FortunaWordEditor;
+  const editSurface = wordEditor?.getSurface(bodyField) || bodyField;
+  const editorShell = editSurface.closest?.('.word-editor') || bodyField;
 
   function setStatus(text, isError) {
     [statusEl, bodyStatus].forEach((el) => {
@@ -88,6 +91,10 @@
   }
 
   function insertAtCursor(textarea, html) {
+    if (wordEditor?.insertHtml) {
+      wordEditor.insertHtml(textarea, html);
+      return;
+    }
     const start = textarea.selectionStart ?? textarea.value.length;
     const end = textarea.selectionEnd ?? start;
     const before = textarea.value.slice(0, start);
@@ -101,30 +108,6 @@
     textarea.focus();
     textarea.setSelectionRange(caret, caret);
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  function getSelectedText(textarea) {
-    const start = textarea.selectionStart ?? 0;
-    const end = textarea.selectionEnd ?? start;
-    return textarea.value.slice(start, end);
-  }
-
-  function replaceSelection(textarea, replacement) {
-    const start = textarea.selectionStart ?? textarea.value.length;
-    const end = textarea.selectionEnd ?? start;
-    const before = textarea.value.slice(0, start);
-    const after = textarea.value.slice(end);
-    textarea.value = before + replacement + after;
-    const caret = before.length + replacement.length;
-    textarea.focus();
-    textarea.setSelectionRange(caret, caret);
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  function wrapSelection(textarea, before, after, fallback) {
-    const selected = getSelectedText(textarea).trim();
-    const content = selected || fallback;
-    replaceSelection(textarea, before + content + after);
   }
 
   function toYouTubeEmbed(url) {
@@ -304,17 +287,17 @@
 
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
     dropzone.addEventListener(eventName, preventDefaults);
-    bodyField.addEventListener(eventName, preventDefaults);
+    editSurface.addEventListener(eventName, preventDefaults);
   });
 
   ['dragenter', 'dragover'].forEach((eventName) => {
     dropzone.addEventListener(eventName, () => dropzone.classList.add('is-dragover'));
-    bodyField.addEventListener(eventName, () => bodyField.classList.add('is-dragover'));
+    editSurface.addEventListener(eventName, () => editorShell.classList.add('is-dragover'));
   });
 
   ['dragleave', 'drop'].forEach((eventName) => {
     dropzone.addEventListener(eventName, () => dropzone.classList.remove('is-dragover'));
-    bodyField.addEventListener(eventName, () => bodyField.classList.remove('is-dragover'));
+    editSurface.addEventListener(eventName, () => editorShell.classList.remove('is-dragover'));
   });
 
   dropzone.addEventListener('drop', (event) => {
@@ -322,7 +305,7 @@
     if (files?.length) uploadFiles(files, 'append');
   });
 
-  bodyField.addEventListener('drop', (event) => {
+  editSurface.addEventListener('drop', (event) => {
     const files = event.dataTransfer?.files;
     if (files?.length) uploadFiles(files, 'cursor');
   });
@@ -407,7 +390,7 @@
     return files;
   }
 
-  bodyField.addEventListener('paste', (event) => {
+  editSurface.addEventListener('paste', (event) => {
     const files = filesFromClipboard(event);
     if (!files.length) return;
     event.preventDefault();
@@ -492,57 +475,22 @@
     coverCatcher?.focus();
   });
 
-  toolbar?.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const button = target.closest('button[data-action]');
-    if (!(button instanceof HTMLButtonElement)) return;
-    const action = button.dataset.action;
-    if (!action) return;
+  function addNewsTool(label, title, onClick) {
+    const toolbar = wordEditor?.getToolbar(bodyField);
+    if (!toolbar) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'word-editor__btn';
+    btn.textContent = label;
+    btn.title = title;
+    btn.addEventListener('mousedown', (event) => event.preventDefault());
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      onClick();
+    });
+    toolbar.appendChild(btn);
+  }
 
-    switch (action) {
-      case 'paragraph':
-        wrapSelection(bodyField, '<p>', '</p>', 'Текст абзаца');
-        break;
-      case 'line-break':
-        insertAtCursor(bodyField, '<br>');
-        break;
-      case 'h2':
-        wrapSelection(bodyField, '<h2>', '</h2>', 'Подзаголовок');
-        break;
-      case 'h3':
-        wrapSelection(bodyField, '<h3>', '</h3>', 'Подзаголовок');
-        break;
-      case 'quote':
-        wrapSelection(bodyField, '<blockquote><p>', '</p></blockquote>', 'Текст цитаты');
-        break;
-      case 'ul':
-        replaceSelection(
-          bodyField,
-          '<ul>\n  <li>Пункт 1</li>\n  <li>Пункт 2</li>\n</ul>'
-        );
-        break;
-      case 'ol':
-        replaceSelection(
-          bodyField,
-          '<ol>\n  <li>Пункт 1</li>\n  <li>Пункт 2</li>\n</ol>'
-        );
-        break;
-      case 'link': {
-        const href = window.prompt('Вставьте URL ссылки');
-        if (!href) break;
-        const selected = getSelectedText(bodyField).trim() || 'Ссылка';
-        replaceSelection(bodyField, '<a href="' + href.trim() + '">' + selected + '</a>');
-        break;
-      }
-      case 'youtube':
-        insertYoutube();
-        break;
-      case 'reel':
-        insertReel();
-        break;
-      default:
-        break;
-    }
-  });
+  addNewsTool('YouTube', 'Вставить видео YouTube', insertYoutube);
+  addNewsTool('Reels', 'Вставить Instagram / Shorts / Facebook', insertReel);
 })();

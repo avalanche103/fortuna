@@ -14,6 +14,8 @@ export function sanitizeNewsHtml(html: string): string {
       'h1',
       'h2',
       'span',
+      'u',
+      'font',
       'figure',
       'figcaption',
       'video',
@@ -26,7 +28,17 @@ export function sanitizeNewsHtml(html: string): string {
       iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder', 'loading', 'referrerpolicy'],
       video: ['src', 'controls', 'width', 'height', 'poster'],
       source: ['src', 'type'],
+      font: ['size'],
+      span: ['class', 'style'],
       '*': ['class'],
+    },
+    allowedStyles: {
+      '*': {
+        'font-size': [
+          /^\d+(\.\d+)?(px|pt|em|rem)$/,
+          /^(xx-small|x-small|small|medium|large|x-large|xx-large|xxx-large)$/,
+        ],
+      },
     },
     allowedIframeHostnames: [
       'www.youtube.com',

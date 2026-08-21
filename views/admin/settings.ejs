@@ -6,6 +6,7 @@
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
+  <%- include('../partials/admin-favicon') %>
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
@@ -36,11 +37,12 @@
         </div>
         <div class="form-group">
           <label>Текст набора</label>
-          <textarea name="recruitment_body" style="min-height:200px;"><%= settings.recruitment_body || '' %></textarea>
+          <textarea name="recruitment_body" class="js-word-editor" data-mode="text"><%= settings.recruitment_body || '' %></textarea>
         </div>
         <button type="submit" class="btn btn--primary">Сохранить</button>
       </form>
     </div>
   </div>
+  <script src="/js/admin-word-editor.js"></script>
 </body>
 </html>

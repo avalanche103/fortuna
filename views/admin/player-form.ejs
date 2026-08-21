@@ -6,6 +6,7 @@
   <title><%= title %></title>
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
+  <%- include('../partials/admin-favicon') %>
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
@@ -38,7 +39,7 @@
         <% } %>
         <div class="form-group">
           <label>Биография</label>
-          <textarea name="bio"><%= player ? (player.bio || '') : '' %></textarea>
+          <textarea name="bio" class="js-word-editor" data-mode="text"><%= player ? (player.bio || '') : '' %></textarea>
         </div>
         <div class="form-group">
           <label>Фото</label>
@@ -79,5 +80,6 @@
       </div>
     </div>
   </div>
+  <script src="/js/admin-word-editor.js"></script>
 </body>
 </html>
