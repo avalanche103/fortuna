@@ -32,6 +32,7 @@ ensureSessionTable();
 ensureSeedData();
 
 const app = express();
+app.locals.assetVersion = '20260824e';
 const PORT = Number(process.env.PORT) || 3000;
 const staticMaxAge = isProduction ? '7d' : 0;
 

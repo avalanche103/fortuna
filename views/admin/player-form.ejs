@@ -25,12 +25,10 @@
           <label>Дата рождения (ДД.ММ.ГГГГ)</label>
           <input type="text" name="birth_date" value="<%= player ? (player.birth_date || '') : '' %>">
         </div>
-        <% if (kind === 'player') { %>
-          <div class="form-group">
-            <label>Амплуа</label>
-            <input type="text" name="position" value="<%= player ? (player.position || '') : '' %>">
-          </div>
-        <% } %>
+        <div class="form-group">
+          <label>Амплуа</label>
+          <input type="text" name="position" value="<%= player ? (player.position || '') : '' %>">
+        </div>
         <% if (kind === 'graduate') { %>
           <div class="form-group">
             <label>Клуб</label>

@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
 import path from 'path';
 import { queryRow, queryRows } from './helpers';
-import { buildNewsExcerpt } from '../utils/news-text';
+import { isJunkExcerpt } from '../utils/news-text';
 import { DATA_DIR, DB_PATH, ensureDataDirs } from '../paths';
 
 ensureDataDirs();
@@ -179,14 +179,13 @@ function patchNewsSchema(): void {
 }
 
 function refreshNewsExcerpts(): void {
-  const rows = queryRows<{ id: number; excerpt: string | null; body: string }>(
-    db.prepare('SELECT id, excerpt, body FROM news').all()
+  const rows = queryRows<{ id: number; excerpt: string | null }>(
+    db.prepare('SELECT id, excerpt FROM news').all()
   );
-  const update = db.prepare('UPDATE news SET excerpt = ? WHERE id = ?');
+  const update = db.prepare('UPDATE news SET excerpt = NULL WHERE id = ?');
   for (const row of rows) {
-    const excerpt = buildNewsExcerpt(null, row.body);
-    if (excerpt !== (row.excerpt ?? '')) {
-      update.run(excerpt || null, row.id);
+    if (row.excerpt && isJunkExcerpt(row.excerpt)) {
+      update.run(row.id);
     }
   }
 }

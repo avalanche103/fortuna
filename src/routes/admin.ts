@@ -30,7 +30,7 @@ import {
 import type { ScheduleSlotInput } from '../services/content';
 import { createDiplomaPdf } from '../services/diploma';
 import { resolveYoutubeTitle } from '../utils/youtube';
-import { applyNewsCover, getNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
+import { applyNewsCover, cleanExcerptText, getNewsCoverImage, stripNewsCoverFromBody } from '../utils/news-text';
 import { sanitizeNewsHtml } from '../utils/html';
 import { imageFileFilter } from '../utils/uploads';
 import { pingIndexNow } from '../utils/indexnow';
@@ -343,10 +343,11 @@ router.post('/news', requireAdmin, (req, res) => {
   );
   const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
   const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
+  const nextExcerpt = cleanExcerptText(excerpt || '') || null;
   db.prepare(
     `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(title, slug, newsCategory, excerpt || null, nextBody, is_pinned ? 1 : 0, sortOrder, published_at);
+  ).run(title, slug, newsCategory, nextExcerpt, nextBody, is_pinned ? 1 : 0, sortOrder, published_at);
   void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${newsCategory}/${slug}`);
   res.redirect('/admin/news');
 });
@@ -354,11 +355,12 @@ router.post('/news', requireAdmin, (req, res) => {
 router.post('/news/:id', requireAdmin, (req, res) => {
   const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
   const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
+  const nextExcerpt = cleanExcerptText(excerpt || '') || null;
   const existing = queryRow<{ slug: string }>(db.prepare('SELECT slug FROM news WHERE id = ?').get(req.params.id));
   db.prepare(
     `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, published_at=?, updated_at=datetime('now')
      WHERE id=?`
-  ).run(title, category || 'novosti', excerpt || null, nextBody, is_pinned ? 1 : 0, published_at, req.params.id);
+  ).run(title, category || 'novosti', nextExcerpt, nextBody, is_pinned ? 1 : 0, published_at, req.params.id);
   if (existing?.slug) {
     void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${category || 'novosti'}/${existing.slug}`);
   }
@@ -835,7 +837,7 @@ router.post('/players/:id', requireAdmin, upload.single('photo'), (req, res) => 
   ).run(
     name,
     birth_date || null,
-    isGraduate ? existing.position : position || null,
+    position || null,
     isGraduate ? club || null : existing.club,
     bio || null,
     photo,

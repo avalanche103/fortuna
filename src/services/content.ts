@@ -690,7 +690,7 @@ export const MONTH_NAMES = [
 ];
 
 export function getNewsExcerpt(article: Pick<News, 'excerpt' | 'body'>, maxLen = 200): string {
-  return buildNewsExcerpt(article.excerpt, article.body, maxLen);
+  return buildNewsExcerpt(article.excerpt, '', maxLen);
 }
 
 export function getNewsCoverImage(article: Pick<News, 'body'>): string | null {
