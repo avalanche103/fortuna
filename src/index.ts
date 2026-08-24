@@ -114,6 +114,7 @@ app.use((req, res, next) => {
   res.locals.settings = getSettings();
   res.locals.navGroups = getGruppyGroups();
   res.locals.thumb = thumbnailUrl;
+  res.locals.assetVersion = req.app.locals.assetVersion || '20260824f';
   next();
 });
 

@@ -937,6 +937,54 @@ textarea.is-dragover,
 
 .form-group textarea { min-height: 120px; resize: vertical; }
 
+.player-admin-photo {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  max-width: 280px;
+  padding: 0.85rem;
+  border: 2px dashed var(--gray-200);
+  border-radius: 8px;
+  background: var(--gray-50);
+  outline: none;
+}
+
+.player-admin-photo:focus,
+.player-admin-photo:focus-within {
+  border-color: var(--orange);
+}
+
+.player-admin-photo__preview {
+  display: block;
+  width: 160px;
+  height: 210px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 6px;
+  background: var(--gray-100);
+}
+
+.player-admin-photo__preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.player-admin-photo__hint {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.player-admin-photo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .form-check {
   display: flex;
   align-items: center;

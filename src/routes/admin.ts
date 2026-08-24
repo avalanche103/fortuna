@@ -830,7 +830,9 @@ router.post('/players/:id', requireAdmin, upload.single('photo'), (req, res) => 
     return;
   }
   const isGraduate = Boolean(is_graduate);
-  const photo = req.file ? `/uploads/${req.file.filename}` : existing.photo;
+  let photo = existing.photo;
+  if (req.body.remove_photo === '1') photo = null;
+  if (req.file) photo = `/uploads/${req.file.filename}`;
   db.prepare(
     `UPDATE players SET name=?, birth_date=?, position=?, club=?, bio=?, photo=?, is_graduate=?, is_featured=?, is_chudo_master=?
      WHERE id=?`

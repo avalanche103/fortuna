@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
   <%- include('../partials/admin-favicon') %>
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin.css?v=20260824f">
 </head>
 <body>
   <div class="admin-layout">
@@ -20,6 +20,27 @@
         <div class="form-group">
           <label>ФИО</label>
           <input type="text" name="name" value="<%= player ? player.name : '' %>" required>
+        </div>
+        <div class="form-group">
+          <label>Фото</label>
+          <div class="player-admin-photo" id="player-photo" tabindex="0">
+            <% if (player && player.photo) { %>
+              <img class="player-admin-photo__preview" id="player-photo-preview" src="<%= player.photo %>" alt="">
+            <% } else { %>
+              <div class="player-admin-photo__preview player-admin-photo__preview--empty" id="player-photo-preview">Нет фото</div>
+            <% } %>
+            <p class="player-admin-photo__hint">Вставьте картинку (Ctrl+V) или выберите файл</p>
+            <div class="player-admin-photo__actions">
+              <button type="button" class="btn btn--outline" id="player-photo-browse">Выбрать файл</button>
+              <% if (player && player.photo) { %>
+                <label class="form-check">
+                  <input type="checkbox" name="remove_photo" value="1" id="player-photo-remove">
+                  Удалить текущее фото
+                </label>
+              <% } %>
+            </div>
+            <input type="file" name="photo" id="player-photo-input" accept="image/*" hidden>
+          </div>
         </div>
         <div class="form-group">
           <label>Дата рождения (ДД.ММ.ГГГГ)</label>
@@ -38,10 +59,6 @@
         <div class="form-group">
           <label>Биография</label>
           <textarea name="bio" class="js-word-editor" data-mode="text"><%= player ? (player.bio || '') : '' %></textarea>
-        </div>
-        <div class="form-group">
-          <label>Фото</label>
-          <input type="file" name="photo" accept="image/*">
         </div>
         <% if (kind === 'player') { %>
           <div class="form-group">
@@ -79,5 +96,60 @@
     </div>
   </div>
   <script src="/js/admin-word-editor.js"></script>
+  <script>
+    (function () {
+      const box = document.getElementById('player-photo');
+      const input = document.getElementById('player-photo-input');
+      const browse = document.getElementById('player-photo-browse');
+      const preview = document.getElementById('player-photo-preview');
+      const remove = document.getElementById('player-photo-remove');
+      if (!box || !input || !browse || !preview) return;
+
+      function showFile(file) {
+        if (!file || !/^image\//i.test(file.type) && file.type) return;
+        const url = URL.createObjectURL(file);
+        if (preview.tagName === 'IMG') {
+          preview.src = url;
+        } else {
+          const img = document.createElement('img');
+          img.className = 'player-admin-photo__preview';
+          img.id = 'player-photo-preview';
+          img.alt = '';
+          img.src = url;
+          preview.replaceWith(img);
+        }
+        if (remove) remove.checked = false;
+      }
+
+      function assignFile(file) {
+        if (!file) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+        showFile(file);
+      }
+
+      browse.addEventListener('click', function (event) {
+        event.preventDefault();
+        input.click();
+      });
+      input.addEventListener('change', function () {
+        if (input.files && input.files[0]) showFile(input.files[0]);
+      });
+      box.addEventListener('paste', function (event) {
+        const files = event.clipboardData && event.clipboardData.files;
+        const file = files && files[0];
+        if (!file) return;
+        event.preventDefault();
+        assignFile(file);
+      });
+      box.addEventListener('dragover', function (event) { event.preventDefault(); });
+      box.addEventListener('drop', function (event) {
+        event.preventDefault();
+        const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (file) assignFile(file);
+      });
+    })();
+  </script>
 </body>
 </html>
