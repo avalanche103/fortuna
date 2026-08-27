@@ -15,7 +15,7 @@ import { runMigrations } from './db';
 import { ensureSessionTable, SqliteSessionStore } from './db/session-store';
 import { ensureSeedData } from './db/seed';
 import { UPLOAD_DIR, ensureDataDirs } from './paths';
-import { getGruppyGroups, getSettings, splitPlayerName, invalidateContentCache } from './services/content';
+import { getGruppyGroups, getSettings, splitPlayerName, invalidateContentCache, getYandexMetrikaId } from './services/content';
 import { canonicalRedirect } from './middleware/canonical';
 import { securityHeaders } from './middleware/security';
 import { attachCsrfToken, verifyCsrf } from './middleware/csrf';
@@ -112,6 +112,7 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.splitPlayerName = splitPlayerName;
   res.locals.settings = getSettings();
+  res.locals.ymCounterId = getYandexMetrikaId(res.locals.settings);
   res.locals.navGroups = getGruppyGroups();
   res.locals.thumb = thumbnailUrl;
   res.locals.assetVersion = req.app.locals.assetVersion || '20260824f';
@@ -138,6 +139,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   res.locals.settings = res.locals.settings || {};
   res.locals.navGroups = res.locals.navGroups || [];
   res.locals.siteUrl = res.locals.siteUrl || process.env.SITE_URL || '';
+  res.locals.ymCounterId = res.locals.ymCounterId || '';
   try {
     res.status(500).render('pages/500', {
       title: 'Ошибка сервера',

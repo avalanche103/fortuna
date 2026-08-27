@@ -53,6 +53,14 @@ export function getSetting(key: string, fallback = ''): string {
   return setting?.value ?? fallback;
 }
 
+export const YANDEX_METRIKA_ID = '111995843';
+
+export function getYandexMetrikaId(settings: SiteSettings = getSettings()): string {
+  return String(process.env.YANDEX_METRIKA_ID || settings.ym_counter_id || YANDEX_METRIKA_ID)
+    .replace(/\D/g, '')
+    .slice(0, 20);
+}
+
 export function getRecruitmentContent(settings: SiteSettings = getSettings()): {
   title: string;
   subtitle: string;

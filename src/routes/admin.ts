@@ -1045,8 +1045,14 @@ router.get('/settings', requireAdmin, (_req, res) => {
 
 router.post('/settings', requireAdmin, (req, res) => {
   const upsert = db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
+  const skip = new Set(['_csrf']);
   for (const [key, value] of Object.entries(req.body)) {
-    if (typeof value === 'string') upsert.run(key, value);
+    if (skip.has(key) || typeof value !== 'string') continue;
+    if (key === 'ym_counter_id') {
+      upsert.run(key, value.replace(/\D/g, '').slice(0, 20));
+      continue;
+    }
+    upsert.run(key, value);
   }
   res.redirect('/admin/settings');
 });
