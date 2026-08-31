@@ -46,6 +46,7 @@ import {
   truncateMeta,
 } from '../utils/seo';
 import { INDEXNOW_KEY } from '../config/env';
+import type { ScheduleMonth } from '../types';
 import { getOrCreateThumbnail, THUMB_WIDTH } from '../utils/thumbnails';
 import fs from 'fs';
 
@@ -324,6 +325,47 @@ function getFirstVisibleScheduleDay(year: number, month: number, now: Date): num
   return 1;
 }
 
+function hasUpcomingScheduleEntries(
+  month: ScheduleMonth,
+  now: Date,
+  groupId?: number | null
+): boolean {
+  const firstDay = getFirstVisibleScheduleDay(month.year, month.month, now);
+  const entries = getScheduleEntries(month.id).filter((entry) => entry.day >= firstDay);
+  if (groupId) return entries.some((entry) => entry.group_id === groupId);
+  return entries.length > 0;
+}
+
+function getNextScheduleMonthWithEntries(
+  from: ScheduleMonth,
+  months: ScheduleMonth[],
+  now: Date,
+  groupId?: number | null
+): ScheduleMonth | undefined {
+  const sorted = [...months].sort((a, b) => a.year - b.year || a.month - b.month);
+  const startIdx = sorted.findIndex((item) => item.id === from.id);
+  for (let i = startIdx + 1; i < sorted.length; i++) {
+    if (hasUpcomingScheduleEntries(sorted[i], now, groupId)) return sorted[i];
+  }
+  return undefined;
+}
+
+function resolveScheduleMonth(
+  months: ScheduleMonth[],
+  now: Date,
+  hasRequestedMonth: boolean,
+  requestedYear: number,
+  requestedMonth: number,
+  groupId?: number | null
+): ScheduleMonth | undefined {
+  const initial = hasRequestedMonth
+    ? getScheduleMonth(requestedYear, requestedMonth)
+    : getCurrentScheduleMonth() ?? months[0];
+  if (!initial) return undefined;
+  if (hasUpcomingScheduleEntries(initial, now, groupId)) return initial;
+  return getNextScheduleMonthWithEntries(initial, months, now, groupId) ?? initial;
+}
+
 router.get('/raspisanie', (req: Request, res: Response) => {
   const now = new Date();
   const allMonths = getScheduleMonths();
@@ -350,9 +392,29 @@ router.get('/raspisanie', (req: Request, res: Response) => {
     return;
   }
 
-  const month = hasRequestedMonth
-    ? getScheduleMonth(requestedYear, requestedMonth)
-    : getCurrentScheduleMonth() ?? months[0];
+  const month = resolveScheduleMonth(
+    months,
+    now,
+    hasRequestedMonth,
+    requestedYear,
+    requestedMonth,
+    selectedGroup?.id ?? null
+  );
+  if (month) {
+    const requested = hasRequestedMonth
+      ? getScheduleMonth(requestedYear, requestedMonth)
+      : getCurrentScheduleMonth() ?? months[0];
+    if (requested && month.id !== requested.id) {
+      const redirectParams = new URLSearchParams({
+        year: String(month.year),
+        month: String(month.month),
+      });
+      if (selectedGroup) redirectParams.set('group', selectedGroup.slug);
+      res.redirect(`/raspisanie?${redirectParams}`);
+      return;
+    }
+  }
+
   const allEntries = month ? getScheduleEntries(month.id) : [];
   const displayYear = month?.year ?? (hasRequestedMonth ? requestedYear : now.getFullYear());
   const displayMonth = month?.month ?? (hasRequestedMonth ? requestedMonth : now.getMonth() + 1);
