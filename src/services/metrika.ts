@@ -125,7 +125,23 @@ function formatDayLabel(iso: string): string {
   return `${m[3]}.${m[2]}`;
 }
 
-async function ymFetch<T>(url: string): Promise<T> {
+/** Метрика ограничивает параллельные запросы на один аккаунт — ходим строго по одному. */
+let requestQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueYm<T>(task: () => Promise<T>): Promise<T> {
+  const run = requestQueue.then(task, task);
+  requestQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function ymFetchOnce<T>(url: string): Promise<T> {
   const token = getYmToken();
   if (!token) throw new Error('Нет OAuth-токена Яндекс.Метрики');
 
@@ -147,10 +163,30 @@ async function ymFetch<T>(url: string): Promise<T> {
     if (res.status === 401 || res.status === 403) {
       throw new Error('Токен недействителен или нет доступа к счётчику. Выпустите новый OAuth-токен с правом metrika:read.');
     }
-    throw new Error(detail || `Метрика API: HTTP ${res.status}`);
+    const err = new Error(detail || `Метрика API: HTTP ${res.status}`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
   }
 
   return (await res.json()) as T;
+}
+
+async function ymFetch<T>(url: string): Promise<T> {
+  return enqueueYm(async () => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        return await ymFetchOnce<T>(url);
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : '';
+        const quota = /quota|parallel|concurrent|лимит|превышен/i.test(message);
+        if (!quota || attempt === 3) break;
+        await sleep(400 * (attempt + 1));
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Не удалось загрузить Метрику');
+  });
 }
 
 function buildUrl(base: string, params: Record<string, string | number>): string {
@@ -251,44 +287,43 @@ export async function getYmReport(period: YmPeriod): Promise<YmReport> {
   const range = { date1: startDate, date2: endDate, accuracy: 'full' as const };
 
   try {
-    const [totals, daily, pages, sources, devices, countries] = await Promise.all([
-      fetchTable({
-        ...range,
-        metrics:
-          'ym:s:visits,ym:s:newUsers,ym:s:users,ym:s:pageviews,ym:s:bounceRate,ym:s:avgPageViews,ym:s:avgVisitDurationSeconds',
-      }),
-      fetchByTime({
-        ...range,
-        metrics: 'ym:s:visits,ym:s:newUsers,ym:s:pageviews',
-      }),
-      fetchTable({
-        ...range,
-        dimensions: 'ym:s:startURLPath',
-        metrics: 'ym:s:pageviews',
-        sort: '-ym:s:pageviews',
-        limit: 12,
-      }),
-      fetchTable({
-        ...range,
-        dimensions: 'ym:s:lastTrafficSource',
-        metrics: 'ym:s:visits',
-        sort: '-ym:s:visits',
-        limit: 10,
-      }),
-      fetchTable({
-        ...range,
-        dimensions: 'ym:s:deviceCategory',
-        metrics: 'ym:s:visits',
-        sort: '-ym:s:visits',
-      }),
-      fetchTable({
-        ...range,
-        dimensions: 'ym:s:regionCountry',
-        metrics: 'ym:s:visits',
-        sort: '-ym:s:visits',
-        limit: 8,
-      }),
-    ]);
+    // Только последовательно: у Метрики жёсткий лимит параллельных запросов на аккаунт.
+    const totals = await fetchTable({
+      ...range,
+      metrics:
+        'ym:s:visits,ym:s:newUsers,ym:s:users,ym:s:pageviews,ym:s:bounceRate,ym:s:avgPageViews,ym:s:avgVisitDurationSeconds',
+    });
+    const daily = await fetchByTime({
+      ...range,
+      metrics: 'ym:s:visits,ym:s:newUsers,ym:s:pageviews',
+    });
+    const pages = await fetchTable({
+      ...range,
+      dimensions: 'ym:s:startURLPath',
+      metrics: 'ym:s:pageviews',
+      sort: '-ym:s:pageviews',
+      limit: 12,
+    });
+    const sources = await fetchTable({
+      ...range,
+      dimensions: 'ym:s:lastTrafficSource',
+      metrics: 'ym:s:visits',
+      sort: '-ym:s:visits',
+      limit: 10,
+    });
+    const devices = await fetchTable({
+      ...range,
+      dimensions: 'ym:s:deviceCategory',
+      metrics: 'ym:s:visits',
+      sort: '-ym:s:visits',
+    });
+    const countries = await fetchTable({
+      ...range,
+      dimensions: 'ym:s:regionCountry',
+      metrics: 'ym:s:visits',
+      sort: '-ym:s:visits',
+      limit: 8,
+    });
 
     const t = totals.totals || [];
     const visitsSeries = daily.data?.[0]?.metrics?.[0] || [];
