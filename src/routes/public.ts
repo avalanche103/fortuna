@@ -113,7 +113,7 @@ router.get('/sitemap.xml', (_req: Request, res: Response) => {
 
 router.get('/', (_req: Request, res: Response) => {
   const settings = getSettings();
-  const birthdays = getBirthdaysThisMonth(5);
+  const birthdays = getBirthdaysThisMonth(6);
   const recruitmentNews = getLatestNewsByCategory('nabor');
   const siteUrl = res.locals.siteUrl as string;
 

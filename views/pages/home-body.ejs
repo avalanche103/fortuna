@@ -72,7 +72,12 @@
         <% } %>
         <a href="/nabor" class="btn btn--primary widget-recruitment__btn">Почему именно к нам?</a>
         <% if (recruitment.phones) { %>
-          <div class="widget-recruitment__phone"><%= recruitment.phones %></div>
+          <% const phoneList = String(recruitment.phones).split(/[,;]+/).map(function(p) { return p.trim(); }).filter(Boolean); %>
+          <div class="widget-recruitment__phone">
+            <% phoneList.forEach(function(phone) { %>
+              <span class="widget-recruitment__phone-line"><%= phone %></span>
+            <% }); %>
+          </div>
         <% } %>
       </div>
 

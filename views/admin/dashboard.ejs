@@ -17,23 +17,23 @@
       <section class="ga-widget">
         <div class="ga-widget__head">
           <div>
-            <h2 class="ga-widget__title">Google Analytics</h2>
-            <p class="ga-widget__subtitle">Посещения за сегодня</p>
+            <h2 class="ga-widget__title">Яндекс.Метрика</h2>
+            <p class="ga-widget__subtitle">Визиты за сегодня</p>
           </div>
           <a href="/admin/analytics" class="btn btn--outline">Открыть аналитику</a>
         </div>
         <% if (!analytics.configured) { %>
-          <p class="ga-widget__empty">Подключите доступ к GA4 в разделе «Аналитика», чтобы видеть посещения.</p>
+          <p class="ga-widget__empty">Сохраните OAuth-токен в разделе «Аналитика», чтобы видеть визиты.</p>
         <% } else if (analytics.error) { %>
           <p class="ga-widget__empty"><%= analytics.error %></p>
         <% } else { %>
           <div class="ga-widget__stats">
             <div>
-              <div class="ga-widget__value"><%= formatGaNumber(analytics.sessions) %></div>
-              <div class="ga-widget__label">Посещений сегодня</div>
+              <div class="ga-widget__value"><%= formatYmNumber(analytics.sessions) %></div>
+              <div class="ga-widget__label">Визитов сегодня</div>
             </div>
             <div>
-              <div class="ga-widget__value"><%= formatGaNumber(analytics.newUsers) %></div>
+              <div class="ga-widget__value"><%= formatYmNumber(analytics.newUsers) %></div>
               <div class="ga-widget__label">Новых сегодня</div>
             </div>
           </div>

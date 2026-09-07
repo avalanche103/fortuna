@@ -11,9 +11,8 @@ const execFileAsync = promisify(execFile);
 
 export const GA_MEASUREMENT_ID = 'G-NJBSZ9CSXV';
 export const GA_CREDENTIALS_PATH = path.join(DATA_DIR, 'ga-credentials.json');
-export const GA_IMPERSONATE_SA =
-  process.env.GA_IMPERSONATE_SA?.trim() ||
-  'fortuna-analytics@project-80637aeb-8be5-49c5-aca.iam.gserviceaccount.com';
+/** Optional: only for GCP VM impersonation. Leave empty on shared hosting with a key file. */
+export const GA_IMPERSONATE_SA = process.env.GA_IMPERSONATE_SA?.trim() || '';
 
 const GA_SCOPE = 'https://www.googleapis.com/auth/analytics.readonly';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';

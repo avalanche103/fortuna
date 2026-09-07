@@ -16,27 +16,41 @@
       <div class="admin-header">
         <div>
           <h1><%= title %></h1>
-          <p class="admin-subtitle">Данные из Google Analytics 4 · <%= measurementId %></p>
+          <p class="admin-subtitle">Данные из Яндекс.Метрики · счётчик <%= counterId %></p>
         </div>
       </div>
 
-      <% if (saved) { %><div class="alert alert--success">Подключение сохранено.</div><% } %>
+      <% if (saved) { %><div class="alert alert--success">Токен сохранён.</div><% } %>
+      <% if (cleared) { %><div class="alert alert--success">Токен удалён.</div><% } %>
       <% if (connectError) { %><div class="alert alert--error"><%= connectError %></div><% } %>
       <% if (report.error) { %><div class="alert alert--error"><%= report.error %></div><% } %>
 
       <details class="form-card ga-connect" <%= configured ? '' : 'open' %>>
-        <summary>Подключение Google Analytics</summary>
-        <p class="form-hint">Счётчик на сайте уже стоит (<%= measurementId %>).</p>
-        <p class="form-hint">Google блокирует стандартное приложение gcloud для Analytics. Добавьте сервисный аккаунт как <strong>Просматривающий</strong> в GA4:</p>
-        <p class="form-hint"><code><%= credentialsEmail || '' %></code></p>
-        <p class="form-hint">Путь: <a href="https://analytics.google.com/analytics/web/#/admin" target="_blank" rel="noopener">analytics.google.com</a> → Администратор → Управление доступом к ресурсу → Добавить пользователя.</p>
+        <summary>Подключение Яндекс.Метрики</summary>
+        <p class="form-hint">Счётчик на сайте уже стоит (<%= counterId %>). Номер можно сменить в <a href="/admin/settings">Настройках</a>.</p>
+        <p class="form-hint">Чтобы видеть отчёты здесь, нужен OAuth-токен с правом <strong>metrika:read</strong> (без Google Cloud):</p>
+        <ol class="form-hint" style="margin:0 0 1rem 1.2rem; padding:0;">
+          <li>Откройте <a href="https://oauth.yandex.ru/" target="_blank" rel="noopener">oauth.yandex.ru</a> → создать приложение.</li>
+          <li>В правах отметьте «Яндекс.Метрика» → чтение (<code>metrika:read</code>).</li>
+          <li>Скопируйте ClientID и откройте ссылку:<br>
+            <code>https://oauth.yandex.ru/authorize?response_type=token&amp;client_id=ВАШ_CLIENT_ID</code>
+          </li>
+          <li>Войдите аккаунтом владельца счётчика и скопируйте <code>access_token</code> из адресной строки.</li>
+        </ol>
+        <% if (tokenHint) { %>
+          <p class="form-hint">Сейчас сохранён токен: <code><%= tokenHint %></code></p>
+        <% } %>
         <form method="post" action="/admin/analytics/connect">
           <div class="form-group">
-            <label>ID ресурса GA4</label>
-            <input type="text" name="property_id" value="<%= propertyId %>" placeholder="Например, 123456789">
-            <p class="form-hint">Admin → Сведения о ресурсе → Идентификатор ресурса. Можно оставить пустым, если доступ только к одному ресурсу.</p>
+            <label>OAuth-токен</label>
+            <input type="password" name="oauth_token" autocomplete="off" placeholder="<%= tokenHint ? 'Вставьте новый токен, чтобы заменить' : 'Вставьте access_token' %>">
           </div>
-          <button type="submit" class="btn btn--primary">Сохранить ID ресурса</button>
+          <div class="btn-group">
+            <button type="submit" class="btn btn--primary">Сохранить токен</button>
+            <% if (tokenHint) { %>
+              <button type="submit" name="clear_token" value="1" class="btn btn--outline">Удалить токен</button>
+            <% } %>
+          </div>
         </form>
       </details>
 
@@ -47,50 +61,46 @@
       </nav>
 
       <% if (!configured) { %>
-        <p class="ga-widget__empty">После подключения здесь появятся посещения, источники, страницы и устройства.</p>
+        <p class="ga-widget__empty">После сохранения токена здесь появятся визиты, источники, страницы и устройства.</p>
       <% } else { %>
         <div class="admin-stats ga-stats">
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaNumber(report.sessions) %></div>
-            <div class="stat-card__label">Посещения</div>
+            <div class="stat-card__value"><%= formatYmNumber(report.sessions) %></div>
+            <div class="stat-card__label">Визиты</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaNumber(report.newUsers) %></div>
+            <div class="stat-card__value"><%= formatYmNumber(report.newUsers) %></div>
             <div class="stat-card__label">Новые посетители</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaNumber(report.users) %></div>
-            <div class="stat-card__label">Пользователи</div>
+            <div class="stat-card__value"><%= formatYmNumber(report.users) %></div>
+            <div class="stat-card__label">Посетители</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaNumber(report.pageViews) %></div>
-            <div class="stat-card__label">Просмотры страниц</div>
+            <div class="stat-card__value"><%= formatYmNumber(report.pageViews) %></div>
+            <div class="stat-card__label">Просмотры</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaPercent(report.engagementRate) %></div>
-            <div class="stat-card__label">Вовлечённость</div>
+            <div class="stat-card__value"><%= formatYmDepth(report.engagementRate) %></div>
+            <div class="stat-card__label">Глубина</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaDuration(report.avgSessionSeconds) %></div>
-            <div class="stat-card__label">Средняя сессия</div>
+            <div class="stat-card__value"><%= formatYmDuration(report.avgSessionSeconds) %></div>
+            <div class="stat-card__label">Средний визит</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__value"><%= formatGaPercent(report.bounceRate) %></div>
+            <div class="stat-card__value"><%= formatYmPercent(report.bounceRate) %></div>
             <div class="stat-card__label">Отказы</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card__value"><%= report.realtimeUsers == null ? '—' : formatGaNumber(report.realtimeUsers) %></div>
-            <div class="stat-card__label">Сейчас на сайте</div>
           </div>
         </div>
 
         <% if (report.daily.length) { %>
           <% const maxSessions = Math.max.apply(null, report.daily.map(function(d) { return d.sessions; }).concat([1])); %>
           <section class="ga-panel">
-            <h2>Посещения по дням</h2>
+            <h2>Визиты по дням</h2>
             <div class="ga-chart" style="--cols:<%= report.daily.length %>">
               <% report.daily.forEach(function(day) { %>
-                <div class="ga-chart__col" title="<%= day.label %>: <%= formatGaNumber(day.sessions) %> посещений, <%= formatGaNumber(day.newUsers) %> новых">
+                <div class="ga-chart__col" title="<%= day.label %>: <%= formatYmNumber(day.sessions) %> визитов, <%= formatYmNumber(day.newUsers) %> новых">
                   <span class="ga-chart__bar" style="height:<%= Math.max(6, Math.round(day.sessions / maxSessions * 100)) %>%"></span>
                   <span class="ga-chart__label"><%= day.label %></span>
                 </div>
@@ -101,13 +111,11 @@
 
         <%
           const deviceLabel = function(name) {
-            if (name === 'desktop') return 'Компьютер';
-            if (name === 'mobile') return 'Телефон';
-            if (name === 'tablet') return 'Планшет';
-            return name;
-          };
-          const sourceLabel = function(name) {
-            if (name === '(direct)') return 'Прямой заход';
+            const key = String(name || '').toLowerCase();
+            if (key === 'desktop' || key === 'pc') return 'Компьютер';
+            if (key === 'mobile' || key === 'smartphone') return 'Телефон';
+            if (key === 'tablet') return 'Планшет';
+            if (key === 'tv') return 'ТВ';
             return name;
           };
         %>
@@ -122,7 +130,7 @@
                   <% report.pages.forEach(function(item) { %>
                     <tr>
                       <td><code><%= item.name %></code></td>
-                      <td><%= formatGaNumber(item.value) %></td>
+                      <td><%= formatYmNumber(item.value) %></td>
                     </tr>
                   <% }); %>
                 </tbody>
@@ -134,12 +142,12 @@
             <h2>Источники</h2>
             <% if (!report.sources.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
               <table class="admin-table">
-                <thead><tr><th>Источник</th><th>Посещения</th></tr></thead>
+                <thead><tr><th>Источник</th><th>Визиты</th></tr></thead>
                 <tbody>
                   <% report.sources.forEach(function(item) { %>
                     <tr>
-                      <td><%= sourceLabel(item.name) %></td>
-                      <td><%= formatGaNumber(item.value) %></td>
+                      <td><%= item.name %></td>
+                      <td><%= formatYmNumber(item.value) %></td>
                     </tr>
                   <% }); %>
                 </tbody>
@@ -151,12 +159,12 @@
             <h2>Устройства</h2>
             <% if (!report.devices.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
               <table class="admin-table">
-                <thead><tr><th>Устройство</th><th>Посещения</th></tr></thead>
+                <thead><tr><th>Устройство</th><th>Визиты</th></tr></thead>
                 <tbody>
                   <% report.devices.forEach(function(item) { %>
                     <tr>
                       <td><%= deviceLabel(item.name) %></td>
-                      <td><%= formatGaNumber(item.value) %></td>
+                      <td><%= formatYmNumber(item.value) %></td>
                     </tr>
                   <% }); %>
                 </tbody>
@@ -168,12 +176,12 @@
             <h2>Страны</h2>
             <% if (!report.countries.length) { %><p class="form-hint">Пока нет данных.</p><% } else { %>
               <table class="admin-table">
-                <thead><tr><th>Страна</th><th>Посещения</th></tr></thead>
+                <thead><tr><th>Страна</th><th>Визиты</th></tr></thead>
                 <tbody>
                   <% report.countries.forEach(function(item) { %>
                     <tr>
                       <td><%= item.name %></td>
-                      <td><%= formatGaNumber(item.value) %></td>
+                      <td><%= formatYmNumber(item.value) %></td>
                     </tr>
                   <% }); %>
                 </tbody>

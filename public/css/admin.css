@@ -183,8 +183,28 @@ a { color: var(--blue); }
   text-align: center;
 }
 
+.admin-table-actions {
+  width: 1%;
+  vertical-align: middle;
+}
+
 .admin-table-actions .btn-group {
+  flex-direction: column;
   flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.35rem;
+  min-width: 6.75rem;
+}
+
+.admin-table-actions .btn {
+  width: 100%;
+  text-align: center;
+  padding: 0.4rem 0.65rem;
+  white-space: nowrap;
+}
+
+.admin-table-actions form {
+  margin: 0;
 }
 
 .admin-stats {
@@ -640,6 +660,10 @@ a { color: var(--blue); }
 
 .word-editor--news .word-editor__area {
   min-height: 320px;
+}
+
+.word-editor--excerpt .word-editor__area {
+  min-height: 140px;
 }
 
 .word-editor__area p,

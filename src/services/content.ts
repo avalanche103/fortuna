@@ -173,7 +173,7 @@ export function getNewsBySlug(slug: string): News | undefined {
   return queryRow<News>(db.prepare('SELECT * FROM news WHERE slug = ?').get(slug));
 }
 
-export function getBirthdaysThisMonth(limit = 5): Player[] {
+export function getBirthdaysThisMonth(limit = 6): Player[] {
   const now = new Date();
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
   const todayMonth = now.getMonth() + 1;

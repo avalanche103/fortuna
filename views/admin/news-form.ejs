@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
   <%- include('../partials/admin-favicon') %>
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin.css?v=20260907a">
 </head>
 <body>
   <div class="admin-layout">
@@ -25,7 +25,7 @@
         </div>
         <div class="form-group">
           <label>Краткое описание</label>
-          <textarea name="excerpt" class="js-word-editor" data-mode="text"><%= article ? (article.excerpt || '') : '' %></textarea>
+          <textarea name="excerpt" id="news-excerpt" class="js-word-editor" data-mode="text"><%= article ? (article.excerpt || '') : '' %></textarea>
         </div>
         <div class="form-group">
           <label for="cover-catcher">Заглавная картинка</label>
@@ -64,10 +64,6 @@
           <p class="form-hint">Можно вставить картинку из буфера (Ctrl+V) или перетащить файл в текст. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
           <p class="cover-paste__status" id="news-body-status" hidden></p>
         </div>
-        <div class="form-group">
-          <label>Дата публикации</label>
-          <input type="datetime-local" name="published_at" value="<%= article ? article.published_at.replace(' ', 'T').substring(0,16) : '' %>" required>
-        </div>
         <div class="form-check">
           <input type="checkbox" name="is_pinned" id="is_pinned" <%= article && article.is_pinned ? 'checked' : '' %>>
           <label for="is_pinned">Закрепить</label>
@@ -79,7 +75,7 @@
       </form>
     </div>
   </div>
-  <script src="/js/admin-word-editor.js"></script>
+  <script src="/js/admin-word-editor.js?v=20260907a"></script>
   <script src="/js/admin-news-images.js"></script>
 </body>
 </html>

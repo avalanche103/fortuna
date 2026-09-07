@@ -36,18 +36,19 @@ import { imageFileFilter } from '../utils/uploads';
 import { pingIndexNow } from '../utils/indexnow';
 import { loginRateLimit, clearLoginAttempts } from '../middleware/rate-limit';
 import {
-  credentialsEmail,
-  formatGaDuration,
-  formatGaNumber,
-  formatGaPercent,
-  getGaReport,
-  getGaTodayStats,
-  getStoredPropertyId,
-  isGaConfigured,
+  clearYmToken,
+  formatYmDepth,
+  formatYmDuration,
+  formatYmNumber,
+  formatYmPercent,
+  getYmCounterId,
+  getYmReport,
+  getYmTodayStats,
+  isYmConfigured,
   parsePeriod,
-  savePropertyId,
-  GA_MEASUREMENT_ID,
-} from '../services/ga';
+  saveYmToken,
+  tokenHint,
+} from '../services/metrika';
 
 ensureDataDirs();
 const uploadDir = UPLOAD_DIR;
@@ -169,33 +170,38 @@ router.get('/', requireAdmin, async (_req: Request, res: Response) => {
     schedule: (db.prepare('SELECT COUNT(*) as c FROM schedule_months').get() as { c: number }).c,
     videos: (db.prepare('SELECT COUNT(*) as c FROM videos').get() as { c: number }).c,
   };
-  const analytics = await getGaTodayStats();
-  res.render('admin/dashboard', { title: 'Панель', stats, analytics, formatGaNumber });
+  const analytics = await getYmTodayStats();
+  res.render('admin/dashboard', { title: 'Панель', stats, analytics, formatYmNumber });
 });
 
 router.get('/analytics', requireAdmin, async (req, res) => {
   const period = parsePeriod(req.query.period);
-  const report = await getGaReport(period);
+  const report = await getYmReport(period);
   res.render('admin/analytics', {
     title: 'Аналитика',
     report,
     period,
     saved: req.query.saved === '1',
+    cleared: req.query.cleared === '1',
     connectError: typeof req.query.error === 'string' ? req.query.error : '',
-    measurementId: GA_MEASUREMENT_ID,
-    propertyId: getStoredPropertyId(),
-    credentialsEmail: credentialsEmail(),
-    configured: isGaConfigured(),
-    formatGaNumber,
-    formatGaPercent,
-    formatGaDuration,
+    counterId: getYmCounterId(),
+    tokenHint: tokenHint(),
+    configured: isYmConfigured(),
+    formatYmNumber,
+    formatYmPercent,
+    formatYmDuration,
+    formatYmDepth,
   });
 });
 
 router.post('/analytics/connect', requireAdmin, (req, res) => {
   try {
-    const propertyId = String(req.body.property_id || '').trim();
-    if (propertyId) savePropertyId(propertyId);
+    if (req.body.clear_token === '1') {
+      clearYmToken();
+      res.redirect('/admin/analytics?cleared=1');
+      return;
+    }
+    saveYmToken(String(req.body.oauth_token || ''));
     res.redirect('/admin/analytics?saved=1');
   } catch (error) {
     res.redirect(
@@ -341,8 +347,14 @@ router.post('/news/upload-image', requireAdmin, (req, res) => {
   });
 });
 
+function nowPublishedAt(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
 router.post('/news', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
+  const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
   const slug = slugify(title, { lower: true, strict: true, locale: 'ru' });
   const newsCategory = category || 'novosti';
   const minSort = queryRow<{ value: number }>(
@@ -354,20 +366,20 @@ router.post('/news', requireAdmin, (req, res) => {
   db.prepare(
     `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(title, slug, newsCategory, nextExcerpt, nextBody, is_pinned ? 1 : 0, sortOrder, published_at);
+  ).run(title, slug, newsCategory, nextExcerpt, nextBody, is_pinned ? 1 : 0, sortOrder, nowPublishedAt());
   void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${newsCategory}/${slug}`);
   res.redirect('/admin/news');
 });
 
 router.post('/news/:id', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, published_at, is_pinned, cover_image } = req.body;
+  const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
   const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
   const nextExcerpt = cleanExcerptText(excerpt || '') || null;
   const existing = queryRow<{ slug: string }>(db.prepare('SELECT slug FROM news WHERE id = ?').get(req.params.id));
   db.prepare(
-    `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, published_at=?, updated_at=datetime('now')
+    `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, updated_at=datetime('now')
      WHERE id=?`
-  ).run(title, category || 'novosti', nextExcerpt, nextBody, is_pinned ? 1 : 0, published_at, req.params.id);
+  ).run(title, category || 'novosti', nextExcerpt, nextBody, is_pinned ? 1 : 0, req.params.id);
   if (existing?.slug) {
     void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${category || 'novosti'}/${existing.slug}`);
   }

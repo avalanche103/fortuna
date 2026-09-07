@@ -106,6 +106,7 @@
     const shell = document.createElement('div');
     shell.className = 'word-editor';
     if (textarea.id === 'news-body') shell.classList.add('word-editor--news');
+    if (textarea.id === 'news-excerpt') shell.classList.add('word-editor--excerpt');
 
     const toolbar = document.createElement('div');
     toolbar.className = 'word-editor__toolbar';
@@ -123,7 +124,7 @@
     const hint = document.createElement('p');
     hint.className = 'word-editor__hint';
     hint.textContent =
-      'Enter — новый абзац с отступом, как в Word. Shift+Enter — перенос строки без отступа.';
+      'Enter — новая строка. Два раза Enter подряд — отступ между строками.';
 
     textarea.classList.add('word-editor__source');
     textarea.setAttribute('tabindex', '-1');
@@ -239,13 +240,67 @@
       document.execCommand('styleWithCSS', false, false);
     });
 
+    function blockForCaret() {
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return null;
+      let node = sel.getRangeAt(0).startContainer;
+      if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+      return node instanceof HTMLElement ? node.closest('p,div,h1,h2,h3,h4,blockquote,li') : null;
+    }
+
+    function blockEndsWithBreak(block) {
+      if (!block) return false;
+      const html = block.innerHTML.replace(/&nbsp;/gi, ' ').replace(/\u00a0/g, ' ').trim();
+      if (!html || html === '<br>' || html === '<br/>') return true;
+      let last = block.lastChild;
+      while (
+        last &&
+        last.nodeType === Node.TEXT_NODE &&
+        !String(last.textContent || '').replace(/\u00a0/g, ' ').trim()
+      ) {
+        last = last.previousSibling;
+      }
+      return Boolean(last && last.nodeName === 'BR');
+    }
+
+    function removeTrailingBreak(block) {
+      if (!block) return;
+      let last = block.lastChild;
+      while (
+        last &&
+        last.nodeType === Node.TEXT_NODE &&
+        !String(last.textContent || '').replace(/\u00a0/g, ' ').trim()
+      ) {
+        const prev = last.previousSibling;
+        last.remove();
+        last = prev;
+      }
+      if (last && last.nodeName === 'BR') last.remove();
+    }
+
     area.addEventListener('keydown', (event) => {
       if (!allowMarkup && (event.ctrlKey || event.metaKey) && ['b', 'i', 'u'].includes(event.key.toLowerCase())) {
         event.preventDefault();
         return;
       }
-      if (event.key !== 'Enter' || event.shiftKey) return;
+      if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const block = blockForCaret();
+      if (block && block.closest('li')) {
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+        return;
+      }
+
+      event.preventDefault();
       document.execCommand('defaultParagraphSeparator', false, 'p');
+      if (blockEndsWithBreak(block)) {
+        removeTrailingBreak(block);
+        exec('insertParagraph');
+      } else {
+        exec('insertLineBreak');
+      }
+      normalizeArea(area);
+      sync();
     });
 
     area.addEventListener('input', sync);

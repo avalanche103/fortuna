@@ -9,13 +9,19 @@ export function cleanExcerptText(text: string): string {
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/\bresizeWidthMgGallery\s*\(\s*\)\s*;?/gi, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
     .trim();
 
   if (/<[a-z][\s\S]*>/i.test(result)) {
-    result = htmlToPlain(result);
+    result = htmlToPlain(result).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   }
 
-  return result.replace(/\s+/g, ' ').trim();
+  return result
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function isJunkExcerpt(text: string): boolean {
