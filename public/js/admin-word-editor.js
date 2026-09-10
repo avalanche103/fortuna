@@ -128,6 +128,8 @@
 
     textarea.classList.add('word-editor__source');
     textarea.setAttribute('tabindex', '-1');
+    const nativeRequired = textarea.required || textarea.dataset.required === 'true';
+    textarea.required = false;
     textarea.parentNode.insertBefore(shell, textarea);
     shell.appendChild(toolbar);
     shell.appendChild(area);
@@ -152,6 +154,24 @@
         textarea.value = htmlToText(area);
       }
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function syncBeforeValidate() {
+      sync();
+      if (nativeRequired && !String(textarea.value || '').trim()) {
+        area.classList.add('is-invalid');
+        if (!shell.querySelector('.word-editor__error')) {
+          const err = document.createElement('p');
+          err.className = 'word-editor__error';
+          err.textContent = mode === 'html' ? 'Введите текст новости' : 'Заполните поле';
+          shell.appendChild(err);
+        }
+        area.focus();
+        return false;
+      }
+      area.classList.remove('is-invalid');
+      shell.querySelector('.word-editor__error')?.remove();
+      return true;
     }
 
     function focusArea() {
@@ -303,17 +323,17 @@
       sync();
     });
 
-    area.addEventListener('input', sync);
-
     area.addEventListener('paste', (event) => {
       const data = event.clipboardData;
       if (!data) return;
-      const hasImage = [...(data.files || [])].some((file) => /^image\//i.test(file.type))
-        || [...(data.items || [])].some((item) => item.kind === 'file' && /^image\//i.test(item.type));
+      const html = data.getData('text/html') || '';
+      const hasImage =
+        [...(data.files || [])].some((file) => /^image\//i.test(file.type)) ||
+        [...(data.items || [])].some((item) => item.kind === 'file' && /^image\//i.test(item.type)) ||
+        /<img[^>]+src=["']data:image\//i.test(html);
       if (hasImage && (tools === 'news' || tools === 'html')) return;
 
       event.preventDefault();
-      const html = data.getData('text/html');
       const text = data.getData('text/plain');
       if (html && mode === 'html') {
         const clean = html
@@ -331,7 +351,33 @@
       sync();
     });
 
-    textarea.form?.addEventListener('submit', sync);
+    area.addEventListener('input', () => {
+      area.classList.remove('is-invalid');
+      shell.querySelector('.word-editor__error')?.remove();
+      sync();
+    });
+
+    // HTML5 checks required fields BEFORE the submit event — sync earlier.
+    const form = textarea.form;
+    if (form) {
+      form.addEventListener(
+        'click',
+        (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          const submitter = target.closest('button[type="submit"], input[type="submit"]');
+          if (!submitter || !form.contains(submitter)) return;
+          sync();
+        },
+        true
+      );
+      form.addEventListener('submit', (event) => {
+        if (!syncBeforeValidate()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+    }
     sync();
 
     const api = { area, toolbar, shell, sync, insertHtml, focusArea, mode };

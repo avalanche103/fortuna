@@ -11,6 +11,14 @@ declare module 'express-session' {
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   if (!req.session.adminId) {
+    const wantsJson =
+      req.path.includes('/upload') ||
+      String(req.get('accept') || '').includes('application/json') ||
+      String(req.get('x-requested-with') || '').toLowerCase() === 'xmlhttprequest';
+    if (wantsJson) {
+      res.status(401).json({ error: 'Нужно войти в админку' });
+      return;
+    }
     res.redirect('/admin/login');
     return;
   }

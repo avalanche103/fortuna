@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <%- include('../partials/fonts') %>
   <%- include('../partials/admin-favicon') %>
-  <link rel="stylesheet" href="/css/admin.css?v=20260907a">
+  <link rel="stylesheet" href="/css/admin.css?v=20260910c">
 </head>
 <body>
   <div class="admin-layout">
@@ -15,6 +15,7 @@
     <div class="admin-main">
       <h1><%= title %></h1>
       <form class="form-card form-card--wide" method="post" action="<%= article ? '/admin/news/' + article.id : '/admin/news' %>" id="news-form">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <div class="form-group">
           <label>Заголовок</label>
           <input type="text" name="title" value="<%= article ? article.title : '' %>" required>
@@ -59,9 +60,9 @@
           <div class="image-dropzone__previews" id="image-previews"></div>
         </div>
         <div class="form-group">
-          <label>Текст</label>
-          <textarea name="body" id="news-body" class="js-word-editor" data-mode="html" data-tools="news" required><%= article ? bodyHtml : '' %></textarea>
-          <p class="form-hint">Можно вставить картинку из буфера (Ctrl+V) или перетащить файл в текст. YouTube — обычное видео. Reels — Instagram, YouTube Shorts или Facebook.</p>
+          <label>Текст <span class="form-optional">(необязательно)</span></label>
+          <textarea name="body" id="news-body" class="js-word-editor" data-mode="html" data-tools="news"><%= article ? bodyHtml : '' %></textarea>
+          <p class="form-hint">Можно сохранить только заголовок. Картинку — из буфера (Ctrl+V) или файлом. YouTube / Reels — через кнопки в редакторе.</p>
           <p class="cover-paste__status" id="news-body-status" hidden></p>
         </div>
         <div class="form-check">
@@ -75,7 +76,7 @@
       </form>
     </div>
   </div>
-  <script src="/js/admin-word-editor.js?v=20260907a"></script>
-  <script src="/js/admin-news-images.js"></script>
+  <script src="/js/admin-word-editor.js?v=20260910c"></script>
+  <script src="/js/admin-news-images.js?v=20260910c"></script>
 </body>
 </html>

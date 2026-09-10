@@ -2,9 +2,17 @@ import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { getConfiguredSiteUrl } from '../config/env';
 
+function hostnameOf(hostHeader: string): string {
+  return hostHeader.split(':')[0].toLowerCase();
+}
+
 function allowedOrigins(req: Request): Set<string> {
-  const host = req.get('host') || '';
-  const origins = new Set([`https://${host}`, `http://${host}`]);
+  const host = hostnameOf(req.get('host') || '');
+  const origins = new Set<string>();
+  if (host) {
+    origins.add(`https://${host}`);
+    origins.add(`http://${host}`);
+  }
   const siteUrl = getConfiguredSiteUrl();
   if (siteUrl) {
     try {
@@ -26,6 +34,18 @@ function requestOrigin(req: Request): string | null {
   } catch {
     return null;
   }
+}
+
+function requestCsrfToken(req: Request): unknown {
+  const header = req.get('x-csrf-token');
+  if (header) return header;
+  const query = req.query?._csrf;
+  if (typeof query === 'string') return query;
+  if (Array.isArray(query) && typeof query[0] === 'string') return query[0];
+  if (typeof req.body === 'object' && req.body) {
+    return (req.body as { _csrf?: string })._csrf;
+  }
+  return undefined;
 }
 
 function ensureCsrfToken(req: Request): string {
@@ -63,15 +83,20 @@ export function verifyCsrf(req: Request, res: Response, next: NextFunction): voi
   const expected = ensureCsrfToken(req);
   const origin = requestOrigin(req);
   const originOk = origin ? allowedOrigins(req).has(origin) : false;
-  const token =
-    req.get('x-csrf-token') ||
-    (typeof req.body === 'object' && req.body ? (req.body as { _csrf?: string })._csrf : undefined);
-  const tokenOk = tokensMatch(expected, token);
+  const tokenOk = tokensMatch(expected, requestCsrfToken(req));
 
   if (tokenOk || originOk) {
     next();
     return;
   }
 
+  const wantsJson =
+    req.path.includes('/upload') ||
+    String(req.get('accept') || '').includes('application/json') ||
+    String(req.get('x-requested-with') || '').toLowerCase() === 'xmlhttprequest';
+  if (wantsJson) {
+    res.status(403).json({ error: 'Сессия устарела — обновите страницу и войдите снова' });
+    return;
+  }
   res.status(403).type('text/plain').send('Forbidden');
 }

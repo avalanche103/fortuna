@@ -31,16 +31,16 @@ export function imageFileFilter(_req: Request, file: Express.Multer.File, cb: Fi
   const ext = path.extname(file.originalname || '').toLowerCase();
   const mime = String(file.mimetype || '').toLowerCase();
   if (ext === '.svg' || mime === 'image/svg+xml') {
-    cb(null, false);
+    cb(new Error('SVG не разрешён'));
     return;
   }
   if (!file.originalname && !mime) {
-    cb(null, false);
+    cb(new Error('Файл без имени и типа'));
     return;
   }
   if (ALLOWED_MIME.has(mime) || mime.startsWith('image/') || ALLOWED_EXT.has(ext)) {
     cb(null, true);
     return;
   }
-  cb(null, false);
+  cb(new Error('Только изображения (JPEG, PNG, GIF, WebP)'));
 }

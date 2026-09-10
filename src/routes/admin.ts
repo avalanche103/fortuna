@@ -113,10 +113,15 @@ const uploadVizitkaCoachPhoto = multer({
 });
 
 const newsUploadDir = path.join(uploadDir, 'news');
+fs.mkdirSync(newsUploadDir, { recursive: true });
 const newsStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    fs.mkdirSync(newsUploadDir, { recursive: true });
-    cb(null, newsUploadDir);
+    try {
+      fs.mkdirSync(newsUploadDir, { recursive: true });
+      cb(null, newsUploadDir);
+    } catch (err) {
+      cb(err as Error, newsUploadDir);
+    }
   },
   filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
@@ -327,15 +332,21 @@ router.get('/news/:id/edit', requireAdmin, (req, res) => {
 router.post('/news/upload-image', requireAdmin, (req, res) => {
   uploadNewsImage.single('image')(req, res, (err) => {
     if (err) {
-      const tooBig =
-        (err as { code?: string }).code === 'LIMIT_FILE_SIZE' ||
-        /file too large/i.test(err instanceof Error ? err.message : '');
+      console.error('news image upload:', err);
+      const code = (err as { code?: string }).code;
+      const tooBig = code === 'LIMIT_FILE_SIZE' || /file too large/i.test(err instanceof Error ? err.message : '');
+      const noSpace = code === 'ENOSPC' || /no space/i.test(err instanceof Error ? err.message : '');
+      const denied = code === 'EACCES' || code === 'EPERM' || /permission denied/i.test(err instanceof Error ? err.message : '');
       res.status(400).json({
         error: tooBig
           ? 'Картинка слишком большая. Сохраните JPEG или вставьте ещё раз — теперь она сожмётся сама.'
-          : err instanceof Error
-            ? err.message
-            : 'Ошибка загрузки',
+          : noSpace
+            ? 'На сервере нет места для файла'
+            : denied
+              ? 'Нет прав на запись в папку uploads/news'
+              : err instanceof Error
+                ? err.message
+                : 'Ошибка загрузки',
       });
       return;
     }
@@ -354,36 +365,56 @@ function nowPublishedAt(): string {
 }
 
 router.post('/news', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
-  const slug = slugify(title, { lower: true, strict: true, locale: 'ru' });
-  const newsCategory = category || 'novosti';
-  const minSort = queryRow<{ value: number }>(
-    db.prepare('SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM news WHERE category != ?').get('nabor')
-  );
-  const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
-  const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
-  const nextExcerpt = cleanExcerptText(excerpt || '') || null;
-  db.prepare(
-    `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(title, slug, newsCategory, nextExcerpt, nextBody, is_pinned ? 1 : 0, sortOrder, nowPublishedAt());
-  void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${newsCategory}/${slug}`);
-  res.redirect('/admin/news');
+  try {
+    const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
+    if (!title || !String(title).trim()) {
+      res.status(400).send('Укажите заголовок');
+      return;
+    }
+    const slugBase = slugify(String(title), { lower: true, strict: true, locale: 'ru' }) || 'novost';
+    let slug = slugBase;
+    let suffix = 2;
+    while (queryRow<{ id: number }>(db.prepare('SELECT id FROM news WHERE slug = ?').get(slug))) {
+      slug = `${slugBase}-${suffix}`;
+      suffix += 1;
+    }
+    const newsCategory = category || 'novosti';
+    const minSort = queryRow<{ value: number }>(
+      db.prepare('SELECT COALESCE(MIN(sort_order), 0) - 1 AS value FROM news WHERE category != ?').get('nabor')
+    );
+    const sortOrder = newsCategory === 'nabor' ? 0 : (minSort?.value ?? 0);
+    const nextBody = sanitizeNewsHtml(applyNewsCover(body || '', cover_image, title)) || '';
+    const nextExcerpt = cleanExcerptText(excerpt || '') || null;
+    db.prepare(
+      `INSERT INTO news (title, slug, category, excerpt, body, is_pinned, sort_order, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(String(title).trim(), slug, newsCategory, nextExcerpt, nextBody, is_pinned ? 1 : 0, sortOrder, nowPublishedAt());
+    void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${newsCategory}/${slug}`);
+    res.redirect('/admin/news');
+  } catch (err) {
+    console.error('news create:', err);
+    res.status(500).render('pages/500', { title: 'Ошибка сервера', robots: 'noindex, follow' });
+  }
 });
 
 router.post('/news/:id', requireAdmin, (req, res) => {
-  const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
-  const nextBody = sanitizeNewsHtml(applyNewsCover(body, cover_image, title));
-  const nextExcerpt = cleanExcerptText(excerpt || '') || null;
-  const existing = queryRow<{ slug: string }>(db.prepare('SELECT slug FROM news WHERE id = ?').get(req.params.id));
-  db.prepare(
-    `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, updated_at=datetime('now')
-     WHERE id=?`
-  ).run(title, category || 'novosti', nextExcerpt, nextBody, is_pinned ? 1 : 0, req.params.id);
-  if (existing?.slug) {
-    void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${category || 'novosti'}/${existing.slug}`);
+  try {
+    const { title, category, excerpt, body, is_pinned, cover_image } = req.body;
+    const nextBody = sanitizeNewsHtml(applyNewsCover(body || '', cover_image, title)) || '';
+    const nextExcerpt = cleanExcerptText(excerpt || '') || null;
+    const existing = queryRow<{ slug: string }>(db.prepare('SELECT slug FROM news WHERE id = ?').get(req.params.id));
+    db.prepare(
+      `UPDATE news SET title=?, category=?, excerpt=?, body=?, is_pinned=?, updated_at=datetime('now')
+       WHERE id=?`
+    ).run(String(title || '').trim() || 'Без названия', category || 'novosti', nextExcerpt, nextBody, is_pinned ? 1 : 0, req.params.id);
+    if (existing?.slug) {
+      void pingIndexNow(String(res.locals.siteUrl || ''), `/blog/${category || 'novosti'}/${existing.slug}`);
+    }
+    res.redirect('/admin/news');
+  } catch (err) {
+    console.error('news update:', err);
+    res.status(500).render('pages/500', { title: 'Ошибка сервера', robots: 'noindex, follow' });
   }
-  res.redirect('/admin/news');
 });
 
 router.post('/news/:id/delete', requireAdmin, (req, res) => {

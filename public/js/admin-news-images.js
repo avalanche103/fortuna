@@ -24,8 +24,8 @@
   const newsForm = document.getElementById('news-form');
   const submitBtn = newsForm?.querySelector('button[type="submit"]');
   let uploadsInFlight = 0;
-  const MAX_IMAGE_EDGE = 1600;
-  const JPEG_QUALITY = 0.82;
+  const MAX_IMAGE_EDGE = 1400;
+  const JPEG_QUALITY = 0.75;
 
   function setUploading(active) {
     uploadsInFlight += active ? 1 : -1;
@@ -223,6 +223,50 @@
     previews.appendChild(item);
   }
 
+  function csrfHeaders() {
+    return window.CSRF_TOKEN ? { 'X-CSRF-Token': window.CSRF_TOKEN } : {};
+  }
+
+  function uploadUrl() {
+    const token = window.CSRF_TOKEN || '';
+    return token
+      ? '/admin/news/upload-image?_csrf=' + encodeURIComponent(token)
+      : '/admin/news/upload-image';
+  }
+
+  function appendCsrf(formData) {
+    if (window.CSRF_TOKEN) formData.append('_csrf', window.CSRF_TOKEN);
+    return formData;
+  }
+
+  async function postImage(file) {
+    const formData = appendCsrf(new FormData());
+    formData.append('image', await compressImageFile(namedImageFile(file)));
+    const response = await fetch(uploadUrl(), {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin',
+      headers: csrfHeaders(),
+    });
+    const raw = await response.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      throw new Error(
+        response.status === 413
+          ? 'Файл слишком большой для хостинга'
+          : response.status === 403
+            ? 'Сессия устарела — обновите страницу'
+            : 'Сервер не принял картинку'
+      );
+    }
+    if (!response.ok || !data.url) {
+      throw new Error(data.error || 'Ошибка загрузки');
+    }
+    return data.url;
+  }
+
   async function uploadFiles(files, insertMode) {
     const images = [...files].filter((file) => !file.type || /^image\//i.test(file.type));
     if (!images.length) {
@@ -236,32 +280,11 @@
 
     try {
       for (const file of images) {
-        const formData = new FormData();
-        formData.append('image', await compressImageFile(file));
         try {
-          const response = await fetch('/admin/news/upload-image', {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin',
-            headers: window.CSRF_TOKEN ? { 'X-CSRF-Token': window.CSRF_TOKEN } : {},
-          });
-          const raw = await response.text();
-          let data = {};
-          try {
-            data = raw ? JSON.parse(raw) : {};
-          } catch {
-            throw new Error(
-              response.status === 413
-                ? 'Файл слишком большой для хостинга'
-                : 'Сервер не принял картинку'
-            );
-          }
-          if (!response.ok || !data.url) {
-            throw new Error(data.error || 'Ошибка загрузки');
-          }
-          appendPreview(data.url);
+          const url = await postImage(file);
+          appendPreview(url);
           if (insertMode === 'cursor' || insertMode === 'append') {
-            insertAtCursor(bodyField, '<p><img src="' + data.url + '" alt=""></p>');
+            insertAtCursor(bodyField, '<p><img src="' + url + '" alt=""></p>');
           }
           uploaded += 1;
         } catch (err) {
@@ -383,9 +406,15 @@
     if (!files.length) {
       const html = data.getData('text/html') || '';
       const text = data.getData('text/plain') || '';
-      const src = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || text;
-      const fromData = fileFromDataUrl(src);
-      if (fromData) files.push(fromData);
+      const srcs = [
+        ...html.matchAll(/<img[^>]+src=["'](data:image\/[^"']+)["']/gi),
+      ].map((match) => match[1]);
+      const plainSrc = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || text;
+      if (/^data:image\//i.test(plainSrc)) srcs.push(plainSrc);
+      for (const src of srcs) {
+        const fromData = fileFromDataUrl(src);
+        if (fromData) files.push(fromData);
+      }
     }
     return files;
   }
@@ -400,26 +429,9 @@
   async function uploadCover(file) {
     setCoverStatus('Сжимаем и загружаем…');
     setUploading(true);
-    const formData = new FormData();
-    formData.append('image', await compressImageFile(namedImageFile(file)));
     try {
-      const response = await fetch('/admin/news/upload-image', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin',
-        headers: window.CSRF_TOKEN ? { 'X-CSRF-Token': window.CSRF_TOKEN } : {},
-      });
-      const raw = await response.text();
-      let data = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch {
-        throw new Error(response.status === 413 ? 'Файл слишком большой для хостинга' : 'Сервер не принял картинку');
-      }
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || 'Ошибка загрузки');
-      }
-      showCover(data.url);
+      const url = await postImage(file);
+      showCover(url);
       setCoverStatus('Заглавная картинка вставлена');
       if (coverCatcher) coverCatcher.value = '';
     } catch (err) {
